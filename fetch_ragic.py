@@ -1,0 +1,154 @@
+"""V2 – fetch the Ragic sheets the dashboard needs and save them as raw JSON lists.
+
+V2 additions (separate from the production fetch_ragic.py in the parent folder):
+  people     + Company (own employee = company with "PASSER GROUP Company")
+  companies  + PASSER GROUP Company
+  requests   + record id and the selected-people subtable (names are used only in request details)
+  rotation   Human Rotation "Conf." per person for the current year (arrival confirmation)
+
+Environment:
+  RAGIC_API_KEY  - API key of a read-only Ragic service account (required)
+  RAGIC_BASE     - server URL, e.g. https://www.ragic.com (default)
+  RAGIC_ACCOUNT  - Ragic account / apname (default SIDC10000)
+
+Raw files never leave the build machine: only aggregated, name-free numbers
+end up in the published page (see build.py).
+"""
+import json
+import os
+import sys
+import time
+import urllib.parse
+import urllib.request
+from pathlib import Path
+
+# Field ids are listed for documentation and server-side filtering; records are
+# returned keyed by field label, which is what build.py reads.
+SHEETS = {
+    # Projects with the staffing subtables the Ragic "Balance" JS uses:
+    # 1003224 = people on the project (week of departure/arrival/ready), 1003520 = required per position/week.
+    "projects": {
+        "path": "planing/3",
+        "params": {"subtables": "1", "where": "1009297,eq,Yes"},
+        "keep": ["Project", "Active", "Loc", "Start date", "End date", "Used hours", "Year",
+                 "_subtable_1003224", "_subtable_1003520"],
+        "sub_keep": {"_subtable_1003224": ["Year", "Position", "At work", "Dep week", "Ariv week", "Read week"]},
+    },
+    # People: status fields + name and record id. The name is only used on the build machine to
+    # match hour rows to people; the page gets a pseudonymous code and a link to the Ragic card.
+    "people": {
+        "path": "planing/19",
+        "params": {"subtables": "0",
+                   "fetchDomainIds": ["1001432", "1001370", "1000119", "1000764", "1009378", "1000917", "1000018",
+                                      "1000720"]},
+        "keep": ["_ragicId", "Active", "Project", "Position", "At work", "Subcontractor", "Type", "Company",
+                 "First, Last names", "First&#44; Last names"],
+    },
+    # Booked hours (Task list sub): one row per worker/day/task. Only the fields needed for sums.
+    "hours": {
+        "path": "sub/20",
+        "params": {"subtables": "0",
+                   "fetchDomainIds": ["1003457", "1009449", "1009445", "1000166", "1000180", "1000192", "1009444"]},
+        "keep": ["Project-sub", "Project-T", "Position", "Hours real", "Data task sub", "Employee-sub", "Company-T"],
+        "compact": True,
+    },
+    # Net hourly rate per worker (used only on the build machine for project labour cost)
+    "qualification": {
+        "path": "qualification/1",
+        "params": {"subtables": "0", "fetchDomainIds": ["1000018", "1015773", "1000119"]},
+        "keep": ["Emploee", "Hour rate", "Position"],
+    },
+    # Which companies are subcontractors (invoiced at a flat rate)
+    "companies": {
+        "path": "planing/10",
+        "params": {"subtables": "0"},
+        "keep": ["Company", "Subcontractor", "PASSER GROUP Company"],
+    },
+    # Additional manpower requests with the people selected for them (subtable 1015956)
+    "requests": {
+        "path": "planing/52",
+        "params": {"subtables": "1"},
+        "keep": ["_ragicId", "Project", "Year", "Position", "Date", "Number", "People", "Week", "Status",
+                 "_subtable_1015956"],
+        "sub_keep": {"_subtable_1015956": ["First, last names", "First&#44; last names", "Position", "Project",
+                                           "At work", "Company"]},
+    },
+    # Human Rotation: arrival confirmation ("Conf.") per person, current year only
+    "rotation": {
+        "optional": True,   # if the service account cannot read it yet, the build continues without "Conf."
+        "path": "planing/33",
+        "params": {"subtables": "0", "where": "1003228,eq,{year}",
+                   "fetchDomainIds": ["1003165", "1013824", "1003228", "1003220"]},
+        "keep": ["F", "First, last names", "First&#44; last names", "Conf.", "Year", "Active"],  # name field id 1003165 is labelled "F"
+    },
+}
+
+
+def trim_record(rec, keep, sub_keep=None):
+    """Keep only the listed fields; subtable rows can be trimmed too (drops names)."""
+    if not keep:
+        return rec
+    out = {k: rec.get(k) for k in keep if k in rec}
+    for sub, fields in (sub_keep or {}).items():
+        if isinstance(out.get(sub), dict):
+            out[sub] = {rid: {f: row.get(f) for f in fields if f in row} for rid, row in out[sub].items()}
+    return out
+
+
+def fetch_sheet(base, account, key, cfg):
+    records, offset, limit = [], 0, 1000
+    while True:
+        params = [("api", ""), ("v", "3"), ("APIKey", key), ("limit", str(limit)), ("offset", str(offset))]
+        year = str(time.gmtime().tm_year)
+        for k, v in cfg["params"].items():
+            for item in (v if isinstance(v, list) else [v]):
+                params.append((k, item.replace("{year}", year)))
+        url = f"{base}/{account}/{cfg['path']}?" + urllib.parse.urlencode(params)
+        for attempt in range(4):
+            try:
+                with urllib.request.urlopen(url, timeout=120) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                break
+            except Exception as exc:  # network hiccup: retry with backoff
+                if attempt == 3:
+                    raise
+                print(f"  retry {cfg['path']} ({exc})", file=sys.stderr)
+                time.sleep(5 * (attempt + 1))
+        if isinstance(data, dict) and "status" in data and data.get("status") != "SUCCESS" and not any(
+                k.isdigit() for k in data):
+            raise RuntimeError(f"Ragic error for {cfg['path']}: {str(data)[:300]}")
+        page = [dict(r, _ragicId=int(k)) for k, r in data.items() if k.isdigit()]
+        for r in page:
+            r = trim_record(r, cfg.get("keep"), cfg.get("sub_keep"))
+            # large sheets: store rows as lists in "keep" order to keep the raw file small
+            records.append([r.get(k) for k in cfg["keep"]] if cfg.get("compact") else r)
+        if len(page) < limit:
+            return records
+        offset += limit
+        if offset % 20000 == 0:
+            print(f"  {cfg['path']}: {offset} records so far", flush=True)
+
+
+def main():
+    key = os.environ.get("RAGIC_API_KEY")
+    if not key:
+        sys.exit("RAGIC_API_KEY is not set")
+    base = os.environ.get("RAGIC_BASE", "https://www.ragic.com").rstrip("/")
+    account = os.environ.get("RAGIC_ACCOUNT", "SIDC10000")
+    out_dir = Path(sys.argv[1] if len(sys.argv) > 1 else "raw")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for name, cfg in SHEETS.items():
+        try:
+            recs = fetch_sheet(base, account, key, cfg)
+        except RuntimeError as exc:
+            if not cfg.get("optional"):
+                raise
+            print(f"WARNING: {name} skipped – {exc}", file=sys.stderr)
+            continue
+        (out_dir / f"{name}.json").write_text(json.dumps(recs, ensure_ascii=False), encoding="utf-8")
+        sample_keys = cfg["keep"] if cfg.get("compact") else (sorted(recs[0].keys()) if recs else [])
+        print(f"{name}: {len(recs)} records; fields: {sample_keys}")
+
+
+if __name__ == "__main__":
+    main()

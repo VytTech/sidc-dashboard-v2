@@ -1,0 +1,974 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>SIDC Daily Overview V2</title>
+<style>
+:root{
+  --bg:#f3f5f8; --card:#ffffff; --ink:#141820; --muted:#566170; --faint:#8a939f; --line:#e2e6ec; --soft:#f0f3f7;
+  --accent:#1f5fbf; --accent-bg:#e4edfb;
+  --ok:#157a46; --ok-bg:#dff3e7; --warn:#a86400; --warn-bg:#fdf0d8; --bad:#c22f2f; --bad-bg:#fbe4e2; --bad-bg2:#f3bdb7; --na:#7b8593; --na-bg:#eef1f4;
+  --s-yes:#4f7fd1; --s-workshop:#5fa79b; --s-scheduled:#d9a441; --s-home:#a9b0bb;
+  --shadow:0 1px 2px rgba(16,24,40,.05),0 2px 6px rgba(16,24,40,.05);
+  --sel:#dfe9fb; --sel-detail:#f4f8fe;
+  --nav-h:96px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0b0d11; --card:#1b2029; --ink:#eef1f5; --muted:#adb6c2; --faint:#87909c; --line:#333b48; --soft:#252c37;
+    --accent:#7aaaff; --accent-bg:#22314d;
+    --ok:#5ccf95; --ok-bg:#1a3a2b; --warn:#f0b34f; --warn-bg:#3e2f14; --bad:#ff8379; --bad-bg:#45232a; --bad-bg2:#6b2b30; --na:#8d96a3; --na-bg:#272e38;
+    --s-yes:#5b86cf; --s-workshop:#4d8f86; --s-scheduled:#b8913f; --s-home:#5e6673;
+    --shadow:0 0 0 1px rgba(255,255,255,.03),0 4px 14px rgba(0,0,0,.4);
+    --sel:#2b3d5e; --sel-detail:#212a39;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0b0d11; --card:#1b2029; --ink:#eef1f5; --muted:#adb6c2; --faint:#87909c; --line:#333b48; --soft:#252c37;
+  --accent:#7aaaff; --accent-bg:#22314d;
+  --ok:#5ccf95; --ok-bg:#1a3a2b; --warn:#f0b34f; --warn-bg:#3e2f14; --bad:#ff8379; --bad-bg:#45232a; --bad-bg2:#6b2b30; --na:#8d96a3; --na-bg:#272e38;
+  --s-yes:#5b86cf; --s-workshop:#4d8f86; --s-scheduled:#b8913f; --s-home:#5e6673;
+  --shadow:0 0 0 1px rgba(255,255,255,.03),0 4px 14px rgba(0,0,0,.4);
+  --sel:#2b3d5e; --sel-detail:#212a39;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;scroll-padding-top:calc(var(--nav-h) + 12px)}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;-webkit-text-size-adjust:100%}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1480px;margin:0 auto;padding:18px 20px 48px}
+.num,td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)} .faint{color:var(--faint)}
+.hint{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);padding:16px}
+[hidden]{display:none !important}
+
+/* header */
+.top{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:flex-end;justify-content:space-between;margin-bottom:10px}
+.top h1{font-size:22px;margin:0;letter-spacing:-.01em}
+.meta{color:var(--muted);font-size:13px;margin-top:3px}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--muted);font-size:12px;font-weight:600}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--card)}
+.seg button{border:0;background:transparent;padding:6px 11px;font-size:13px;cursor:pointer;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#fff;font-weight:650}
+.btn{border:1px solid var(--line);background:var(--card);border-radius:9px;padding:6px 11px;font-size:13px;cursor:pointer;color:var(--ink)}
+.btn:hover{border-color:var(--accent)}
+.btn.ghost{background:transparent}
+.btn.small{padding:3px 9px;font-size:12px}
+.stale{background:var(--warn-bg);color:var(--warn);border:1px solid var(--warn);border-radius:10px;padding:8px 12px;margin:0 0 10px;font-weight:600}
+
+/* sticky nav + filters */
+.sticky{position:sticky;top:0;z-index:30;background:color-mix(in srgb,var(--bg) 92%,transparent);backdrop-filter:blur(6px);margin:0 -20px 14px;padding:8px 20px 8px;border-bottom:1px solid var(--line)}
+.nav{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:8px}
+.nav a{padding:6px 12px;border-radius:8px;text-decoration:none;color:var(--muted);font-weight:600;font-size:13.5px}
+.nav a:hover{background:var(--soft);color:var(--ink)}
+.nav a.active{background:var(--accent-bg);color:var(--accent)}
+.nav .cnt{display:inline-block;min-width:18px;margin-left:5px;padding:0 6px;border-radius:999px;background:var(--bad-bg);color:var(--bad);font-size:11.5px;text-align:center}
+.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.filters label{font-size:11.5px;color:var(--muted);display:flex;flex-direction:column;gap:1px}
+.filters select{border:1px solid var(--line);background:var(--card);border-radius:8px;padding:4px 6px;font-size:13px;min-width:110px;max-width:180px}
+.filters .chk{flex-direction:row;align-items:center;gap:6px;font-size:13px;color:var(--ink);padding-top:12px}
+@media (max-width:900px){.sticky{position:static}}
+
+/* sections */
+main > section{margin-top:18px}
+.sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;margin:0 0 10px}
+.sec-head h2{font-size:18px;margin:0;letter-spacing:-.01em}
+.sec-head .hint{margin:2px 0 0}
+.grid{display:grid;gap:12px}
+.two{grid-template-columns:1.25fr 1fr}
+@media (max-width:1100px){.two{grid-template-columns:1fr}}
+.grid > *{min-width:0}
+
+/* KPI */
+.kpis{display:grid;gap:10px;grid-template-columns:repeat(5,minmax(0,1fr))}
+.kpis.secondary{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:10px}
+.kpi{padding:12px 14px}
+.kpi .l{color:var(--muted);font-size:12.5px;display:flex;gap:6px;align-items:center}
+.kpi .v{font-size:28px;font-weight:700;letter-spacing:-.02em;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi .n{font-size:12px;color:var(--faint);min-height:16px}
+.kpis.secondary .kpi .v{font-size:20px}
+.kpi.bad{border-color:var(--bad)} .kpi.bad .v{color:var(--bad)}
+.kpi.warn .v{color:var(--warn)}
+.kpi.info{border-color:var(--accent)} .kpi.info .v{color:var(--accent)}
+.kpi.mgmtk{border-style:dashed}
+.dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none}
+@media (max-width:1000px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.layout-visual .kpi{padding:16px 18px;border-radius:16px}
+.layout-visual .kpi .v{font-size:36px}
+.layout-visual .kpi .ico{font-size:20px}
+
+/* chips & statuses */
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:2px 9px;font-size:12px;font-weight:650;white-space:nowrap}
+.c-bad{background:var(--bad-bg);color:var(--bad)} .c-warn{background:var(--warn-bg);color:var(--warn)}
+.c-ok{background:var(--ok-bg);color:var(--ok)} .c-info{background:var(--accent-bg);color:var(--accent)} .c-na{background:var(--na-bg);color:var(--na)}
+.cell{display:inline-block;min-width:34px;text-align:center;border-radius:5px;padding:0 5px;font-weight:650;font-size:12px}
+
+/* attention + changes */
+.att{list-style:none;margin:0;padding:0}
+.att li{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;padding:8px 6px;border-bottom:1px solid var(--line);cursor:pointer;border-radius:6px}
+.att li:hover{background:var(--soft)}
+.att li:last-child{border-bottom:0}
+.att .what{font-weight:600}
+.att .where{color:var(--muted);font-size:12.5px}
+.att .val{font-weight:700;font-variant-numeric:tabular-nums}
+.ok-msg{color:var(--ok);font-weight:650;padding:6px 0}
+.changes{list-style:none;margin:0;padding:0}
+.changes li{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--line)}
+.changes li:last-child{border-bottom:0}
+.changes .cat{font-size:11px;font-weight:650;text-transform:uppercase;letter-spacing:.04em;color:var(--muted);min-width:118px}
+.changes .imp{color:var(--bad)}
+.changes h4{margin:12px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+
+/* tables */
+.tw{overflow:auto;max-height:70vh;border:1px solid var(--line);border-radius:10px}
+.tw.nomax{max-height:none}
+table{border-collapse:separate;border-spacing:0;width:100%;font-variant-numeric:tabular-nums}
+th,td{padding:6px 9px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap;font-size:13px}
+thead th{position:sticky;top:0;z-index:2;background:var(--card);font-size:12px;color:var(--muted);font-weight:650}
+tbody tr:last-child > td{border-bottom:0}
+td.stick,th.stick{position:sticky;left:0;z-index:1;background:var(--card)}
+thead th.stick{z-index:3}
+tr.row{cursor:pointer}
+tr.row:hover > td{background:var(--soft)}
+tr.row > td:first-child::before{content:"▸";display:inline-block;width:14px;color:var(--faint);transition:transform .15s}
+tr.row.open > td{background:var(--sel)}
+tr.row.open > td:first-child{box-shadow:inset 4px 0 0 var(--accent)}
+tr.row.open > td:first-child::before{transform:rotate(90deg);color:var(--accent)}
+tr.det > td{background:var(--sel-detail);white-space:normal;box-shadow:inset 4px 0 0 var(--accent);border-bottom:2px solid var(--accent);padding:12px 14px}
+tr.det table td, tr.det table th{background:transparent}
+.sub-h{font-size:12px;color:var(--muted);font-weight:650;text-transform:uppercase;letter-spacing:.04em;margin:4px 0 6px}
+.detgrid{display:grid;grid-template-columns:minmax(260px,1fr) minmax(300px,1.3fr);gap:18px}
+@media (max-width:900px){.detgrid{grid-template-columns:1fr}}
+a.code{color:var(--accent);text-decoration:none;font-weight:600}
+a.code:hover{text-decoration:underline}
+.cur{background:var(--accent-bg) !important}
+
+/* bars */
+.bars .r{display:grid;grid-template-columns:150px 1fr 70px 70px;gap:8px;align-items:center;margin:4px 0}
+.bars .r.nocost{grid-template-columns:150px 1fr 70px}
+.bars .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bars .nm.sub{padding-left:14px;color:var(--muted);font-size:12.5px}
+.bars .tr{display:flex;height:12px;border-radius:4px;overflow:hidden;background:var(--soft);gap:2px}
+.bars .tr span{display:block;height:100%}
+.bars .vv{text-align:right;color:var(--muted);font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12.5px;color:var(--muted);margin:0 0 8px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:3px 10px;cursor:pointer;display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--muted)}
+.legend button[aria-pressed="true"]{color:var(--ink);border-color:var(--accent)}
+.legend button[aria-pressed="false"] .dot{opacity:.25}
+
+/* periods */
+.periods{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px;margin:0 0 10px}
+.pb{flex:none;border:1px solid var(--line);background:var(--card);border-radius:7px;padding:3px 9px;font-size:12.5px;cursor:pointer}
+.pb[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:650}
+.pb:disabled{opacity:.35;cursor:default}
+
+/* tabs */
+.tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.tab{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:4px 11px;font-size:12.5px;cursor:pointer;color:var(--muted)}
+.tab[aria-pressed="true"]{background:var(--ink);color:var(--card);border-color:var(--ink)}
+.tab b{font-variant-numeric:tabular-nums}
+.layout-visual .tabs .tab{padding:10px 14px;border-radius:12px;font-size:13px}
+.layout-visual .tabs .tab b{display:block;font-size:22px}
+
+/* visual widgets */
+.waffle{display:flex;flex-wrap:wrap;gap:5px;margin:6px 0 12px}
+.waffle i{width:22px;height:22px;border-radius:5px;display:block}
+.vcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:12px}
+.vcard{display:flex;flex-direction:column;gap:8px;cursor:pointer}
+.vcard:hover{border-color:var(--accent)}
+.vcard.open{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.vcard .nm{font-size:16px;font-weight:700;display:flex;justify-content:space-between;gap:8px}
+.vcard .big{font-size:30px;font-weight:750;line-height:1;font-variant-numeric:tabular-nums}
+.vcard .big small{font-size:12.5px;font-weight:500;color:var(--muted);margin-left:6px}
+.meter{height:10px;border-radius:5px;background:var(--soft);overflow:hidden;display:flex;gap:2px}
+.meter span{display:block;height:100%}
+.vdetail{grid-column:1 / -1}
+.segbar{display:flex;height:14px;border-radius:5px;overflow:hidden;background:var(--soft);gap:2px}
+.segbar span{display:block;height:100%}
+
+/* modal */
+.modal{position:fixed;inset:0;z-index:60;background:rgba(5,8,12,.5);display:flex;align-items:flex-start;justify-content:center;padding:40px 16px;overflow:auto}
+.mbox{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:100%;max-width:1150px;padding:16px}
+.mbox.small{max-width:380px}
+.mhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.mhead h3{margin:0;font-size:16px}
+.pw input{width:100%;border:1px solid var(--line);border-radius:8px;padding:8px 10px;background:var(--card);margin:8px 0}
+.err{color:var(--bad);font-size:12.5px;min-height:18px}
+
+/* trend */
+.trend svg text{fill:var(--muted);font-size:11px}
+#printHead{display:none}
+footer{margin-top:26px;color:var(--faint);font-size:12px;text-align:center}
+
+/* management-only elements */
+body:not(.is-mgmt) .mgmt{display:none !important}
+
+/* print: only the selected section, everything expanded stays, no controls, no names */
+@media print{
+  @page{size:A4 landscape;margin:12mm}
+  html,body{background:#fff;color:#000}
+  .sticky,.top .controls,.stale,.no-print,button.pdf,.periods button:not([aria-pressed="true"]),.modal,footer{display:none !important}
+  body[data-print] main > section:not(.printing),body[data-print] .top{display:none !important}
+  #printHead{display:block;margin:0 0 10px;font-size:12px;border-bottom:1px solid #999;padding-bottom:6px}
+  #printHead h1{font-size:18px;margin:0 0 4px}
+  .card{box-shadow:none;border-color:#bbb;break-inside:avoid}
+  .tw{max-height:none !important;overflow:visible !important;border-color:#bbb}
+  thead th,td.stick,th.stick{position:static !important}
+  .pii{display:none !important}
+  tr.row > td:first-child::before{content:""}
+  a{color:#000;text-decoration:none}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div id="printHead"></div>
+  <header class="top">
+    <div>
+      <h1 id="title"></h1>
+      <div class="meta" id="meta"></div>
+    </div>
+    <div class="controls">
+      <div class="seg" id="segLayout" role="group"></div>
+      <div class="seg" id="segMode" role="group"></div>
+      <button class="btn small" id="lockBtn" hidden></button>
+      <div class="seg" id="segLang" role="group"></div>
+      <button class="btn" id="themeBtn"></button>
+    </div>
+  </header>
+  <div class="stale" id="stale" hidden></div>
+  <div class="sticky" id="sticky">
+    <nav class="nav" id="nav"></nav>
+    <div class="filters" id="filters"></div>
+  </div>
+  <main id="main">
+    <section id="overview"></section>
+    <section id="workforce"></section>
+    <section id="staffing"></section>
+    <section id="hours"></section>
+    <section id="requests"></section>
+    <section id="alerts"></section>
+  </main>
+  <footer id="foot"></footer>
+</div>
+
+<div class="modal" id="wkModal" hidden role="dialog" aria-modal="true" aria-labelledby="wkTitle">
+  <div class="mbox"><div class="mhead"><h3 id="wkTitle"></h3><button class="btn small" id="wkClose">✕</button></div><div id="wkBody"></div></div>
+</div>
+<div class="modal" id="pwModal" hidden role="dialog" aria-modal="true" aria-labelledby="pwTitle">
+  <div class="mbox small pw"><div class="mhead"><h3 id="pwTitle"></h3><button class="btn small" id="pwClose">✕</button></div>
+    <form id="pwForm"><label id="pwLabel" for="pwInput"></label><input type="password" id="pwInput" autocomplete="off"><div class="err" id="pwErr"></div>
+    <button class="btn" type="submit" id="pwOk"></button></form></div>
+</div>
+
+<script>
+const D = /*__DATA__*/null;
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+/* ---------------- storage ---------------- */
+const LS = {
+  get(k, d){ try { const v = localStorage.getItem("sidc-v2:" + k); return v === null ? d : JSON.parse(v); } catch(e){ return d; } },
+  set(k, v){ try { localStorage.setItem("sidc-v2:" + k, JSON.stringify(v)); } catch(e){} },
+  del(k){ try { localStorage.removeItem("sidc-v2:" + k); } catch(e){} }
+};
+
+/* ---------------- i18n ---------------- */
+const I18N = {
+en: {
+  title:"SIDC Projects · Daily Overview", v2:"V2 test", week:"Week", snapshot:"Snapshot", updated:"last successful update",
+  stale:"Data may be outdated – the last successful update was {h} hours ago.",
+  layout:"Layout", classic:"Classic", visual:"Visual", operational:"Operational", management:"Management",
+  lock:"Lock management view", theme:"Theme",
+  pw_title:"Management view", pw_label:"Password", pw_ok:"Open", pw_err:"Wrong password",
+  nav_overview:"Overview", nav_workforce:"Workforce", nav_staffing:"Staffing", nav_hours:"Hours", nav_requests:"Requests", nav_alerts:"Alerts",
+  f_yard:"Yard / location", f_country:"Country", f_project:"Project", f_group:"Position group", f_own:"Employment", f_period:"Period",
+  f_attention:"Attention only", f_all:"All", f_reset:"Reset", own:"Own employees", sub:"Subcontractors", total:"Total",
+  pdf:"PDF", print_section:"Section", print_lang:"Language", print_period:"Period", print_filters:"Filters", print_mode:"Mode", print_none:"none",
+  k_active:"Active workforce", k_atwork:"At work", k_sched:"Scheduled to travel", k_still:"Still needed", k_below:"Projects below plan last week",
+  unassigned:"Not assigned (at home)", k_unassigned:"Unassigned resources", k_unassigned_n:"active, at home, no project",
+  c_unassigned:"Unassigned resources {a} → {b}",
+  k_workshop:"In workshops", k_home:"At home", k_ownsub:"Own / subcontractors", k_nots:"No timesheet entries last week", k_wt:"Working-time alerts",
+  k_mismatch:"Location mismatch", k_hours:"Hours · {p}", k_cost:"Estimated labour cost · {p}", k_cost_total:"Estimated labour cost since start",
+  k_still_n:"in {n} open requests", k_below_n:"of {n} projects with a plan", k_week:"week {w}",
+  att_title:"Attention required", att_none:"No critical issues detected", show_all:"Show all", show_less:"Show less",
+  att_mismatch:"Location mismatch", att_nots:"No timesheet entries last week", att_short:"Near-term manpower shortage",
+  att_below:"Below staffing plan last week", att_wt:"Working-time alerts", att_stale:"Data may be outdated", att_nots_yard:"No timesheets in Ragic for this location",
+  att_workers:"{n} workers", att_people_at_work:"{n} people at work", att_still:"{n} still needed · W{w}", att_fte:"−{v} FTE", att_hours_ago:"{h} h old",
+  ch_title:"What changed", ch_first:"First V2 snapshot – changes appear from the next update.", ch_since:"Compared with {d}.",
+  ch_none:"No important changes since the previous update.", ch_all:"Show all changes", ch_less:"Show fewer",
+  cat_workforce:"Workforce", cat_locations:"Work locations", cat_requests:"Manpower requests", cat_staffing:"Staffing plans",
+  cat_timesheets:"Timesheets and hours", cat_data:"Data quality", cat_cost:"Estimated labour cost",
+  tr_title:"Workforce trend", tr_days:"{n} days", tr_one:"The trend appears after the second daily V2 update.",
+  st_Yes:"At work", st_Workshop:"Workshop", st_Scheduled:"Scheduled", st_Home:"At home", st_Other:"Other",
+  wf_title:"Workforce", wf_hint:"Active workers only (Active = Yes). Own employees = company marked “PASSER GROUP Company” in Ragic.",
+  wf_by_loc:"By work location", wf_by_group:"By position group", loc:"Location", country:"Country", people:"People",
+  waffle_unit:"1 square = {n} people",
+  sf_title:"Staffing", sf_hint:"Last completed week (W{w}): actual FTE from timesheets vs the project manager’s staffing plan. 40 h = 1 FTE, max 1 FTE per person per week. Current and future weeks show the plan only; manpower requests are listed separately. A missing plan is normal.",
+  sf_project:"Project", sf_plan:"Plan", sf_actual:"Actual FTE", sf_ach:"Achieved", sf_short:"Short", sf_status:"Status (W{w})", sf_rep:"Short in last {n} weeks", sf_req:"Related requests still needed",
+  sf_below:"Below plan", sf_ok:"As planned", sf_nots:"No timesheets in Ragic", sf_empty:"No staffing plans for the selected filters.",
+  sf_last:"Last completed week · W{w}", sf_next:"Plan – next {n} weeks (incl. current)", sf_group:"Position group / position", sf_now:"now",
+  sf_reqs:"Related manpower requests (separate process – not added to the plan)", sf_noreq:"No related requests.",
+  sf_nots_note:"This location keeps its timesheets outside Ragic, so actual FTE is not evaluated.",
+  hr_title:"Hours", hr_hint:"“Hours real” from the Ragic task lists. A yard total is the sum of the projects grouped below it. Click a row for projects, positions and alerts.",
+  hr_yard:"Yard", hr_hours:"Hours", hr_cost:"Estimated labour cost", hr_projects:"Projects", hr_main:"Main position groups", hr_alerts:"Alerts",
+  hr_period_total:"Total", hr_sum:"{p}: {h} h", hr_sum_cost:" · {c} estimated labour cost", hr_by_pos:"Hours by position", hr_workers:"Workers ({n})",
+  hr_none:"No hours for the selected period and filters.",
+  cost_note:"Estimated labour cost: own staff = net hourly rate (Qualification) × {lt} in Lithuania or × {trip} on business trips (assumes {share}% of net pay is salary, the rest tax-free per diem); subcontractors = {sub} €/h invoice. {own}% of own-staff hours use the worker’s own rate, the rest the position average. Older hours are priced at current rates.",
+  rq_title:"Manpower requests", rq_hint:"Read-only view of the Ragic requests. The dashboard never assigns people – that stays HR work. Names are shown only inside request details.",
+  rq_week:"Week", rq_project:"Project", rq_position:"Position", rq_requested:"Requested", rq_reserved:"Reserved", rq_confirmed:"Confirmed to arrive",
+  rq_working:"Confirmed working", rq_still:"Still needed", rq_status:"Status", rq_source:"Source", rq_open:"open in Ragic", rq_empty:"No requests for the selected filters.",
+  rq_people:"Selected people", rq_name:"Name", rq_conf:"Conf.", rq_ts:"Timesheet in yard",
+  rs_still_needed:"Still needed", rs_reservation_incomplete:"Reservation incomplete", rs_team_reserved:"Team reserved",
+  rs_partly_working:"{x} working, {y} confirmed to arrive", rs_likely_completed:"Likely completed",
+  yes:"Yes", no:"No",
+  al_title:"Alerts", al_hint:"Records to check, not confirmed violations. Workers are shown by position and an anonymous code – the code opens the employee record in Ragic.",
+  al_all:"All", al_no_ts:"No timesheet entries last week", al_mismatch:"Location mismatch", al_over12:"More than 12 h/day", al_over60:"More than 60 h/week", al_avg48:"Average above 48 h/week",
+  al_hours4:"Hours, last 4 weeks", al_worker:"Worker", al_yard:"Assigned yard", al_detail:"Details", al_last:"Last entry", al_empty:"No alerts for the selected filters.",
+  al_month_note:"Month selected: only day/week limit alerts are evaluated for that month.",
+  d_no_ts:"no entries W{w}", d_mismatch:"entries in {y}", d_over12:"{n}× >12 h (max {m} h)", d_over60:"{n} wk >60 h", d_avg48:"avg {v} h/wk",
+  foot:"Source: Ragic (SIDC10000) · V2 test page · read-only · no names outside request details",
+  c_active_total:"Active workforce {a} → {b}", c_status_Yes:"At work {a} → {b}", c_status_Workshop:"In workshops {a} → {b}", c_status_Scheduled:"Scheduled {a} → {b}", c_status_Home:"At home {a} → {b}",
+  c_yard_onsite:"{yard}: at work {a} → {b}", c_req_new:"New request: {project} – {n}× {position} (W{week})", c_req_status:"{project} {position} (W{week}): {a} → {b}",
+  c_req_still:"{project} {position}: still needed {a} → {b}", c_req_gone:"Request removed in Ragic: {project} {position} (W{week})",
+  c_staff_below:"{project} fell below plan last week (−{missing} FTE)", c_staff_worse:"{project}: shortage {a} → {b} FTE", c_staff_ok:"{project} is back on plan",
+  c_flag_new_mismatch:"New location mismatch: {n} workers", c_flag_new_no_ts:"New “no timesheet entries last week”: {n} workers",
+  c_flag_new_over12:"New >12 h/day alerts: {n} workers", c_flag_new_over60:"New >60 h/week alerts: {n} workers", c_flag_new_avg48:"New >48 h average alerts: {n} workers",
+  c_flag_gone_mismatch:"Location mismatch resolved: {n}", c_flag_gone_no_ts:"Timesheets found again: {n} workers", c_flag_gone_over12:">12 h/day alerts cleared: {n}",
+  c_flag_gone_over60:">60 h/week alerts cleared: {n}", c_flag_gone_avg48:">48 h average cleared: {n}",
+  c_ts_not_updated:"No new timesheet entries since {date}", c_cost_pace:"Weekly estimated labour cost {a} → {b}",
+  g_Welders:"Welders", "g_SAW welders":"SAW welders", "g_Ship builders":"Ship builders", g_Supervision:"Supervision", g_Management:"Management",
+  "g_Pipe fitters":"Pipe fitters", g_Support:"Support", g_Quality:"Quality", g_Operators:"Operators", "g_Other trades":"Other trades",
+  months_short:"short"
+},
+lt: {
+  title:"SIDC projektai · Dienos apžvalga", v2:"V2 bandymas", week:"Savaitė", snapshot:"Duomenys", updated:"paskutinis sėkmingas atnaujinimas",
+  stale:"Duomenys gali būti pasenę – paskutinis sėkmingas atnaujinimas buvo prieš {h} val.",
+  layout:"Išdėstymas", classic:"Klasikinis", visual:"Vaizdinis", operational:"Operatyvinis", management:"Vadovybės",
+  lock:"Užrakinti vadovybės vaizdą", theme:"Tema",
+  pw_title:"Vadovybės vaizdas", pw_label:"Slaptažodis", pw_ok:"Atidaryti", pw_err:"Neteisingas slaptažodis",
+  nav_overview:"Apžvalga", nav_workforce:"Darbuotojai", nav_staffing:"Komplektavimas", nav_hours:"Valandos", nav_requests:"Prašymai", nav_alerts:"Įspėjimai",
+  f_yard:"Gamykla / vieta", f_country:"Šalis", f_project:"Projektas", f_group:"Pareigų grupė", f_own:"Įdarbinimas", f_period:"Laikotarpis",
+  f_attention:"Tik reikalaujantys dėmesio", f_all:"Visi", f_reset:"Išvalyti", own:"Savi darbuotojai", sub:"Subrangovai", total:"Iš viso",
+  pdf:"PDF", print_section:"Skiltis", print_lang:"Kalba", print_period:"Laikotarpis", print_filters:"Filtrai", print_mode:"Režimas", print_none:"nėra",
+  k_active:"Aktyvūs darbuotojai", k_atwork:"Darbe", k_sched:"Išvyksta", k_still:"Dar trūksta", k_below:"Projektai žemiau plano praėjusią savaitę",
+  unassigned:"Nepriskirti (namie)", k_unassigned:"Nepriskirti resursai", k_unassigned_n:"aktyvūs, namie, be projekto",
+  c_unassigned:"Nepriskirti resursai {a} → {b}",
+  k_workshop:"Cechuose", k_home:"Namie", k_ownsub:"Savi / subrangovai", k_nots:"Be žiniaraščio įrašų praėjusią savaitę", k_wt:"Darbo laiko įspėjimai",
+  k_mismatch:"Vietos neatitikimas", k_hours:"Valandos · {p}", k_cost:"Numatoma darbo kaina · {p}", k_cost_total:"Numatoma darbo kaina nuo pradžios",
+  k_still_n:"{n} atviruose prašymuose", k_below_n:"iš {n} projektų su planu", k_week:"{w} savaitė",
+  att_title:"Reikia dėmesio", att_none:"Kritinių problemų nerasta", show_all:"Rodyti viską", show_less:"Rodyti mažiau",
+  att_mismatch:"Vietos neatitikimas", att_nots:"Be žiniaraščio įrašų praėjusią savaitę", att_short:"Artimas žmonių trūkumas",
+  att_below:"Žemiau komplektavimo plano praėjusią savaitę", att_wt:"Darbo laiko įspėjimai", att_stale:"Duomenys gali būti pasenę", att_nots_yard:"Šiai vietai Ragic žiniaraščių nėra",
+  att_workers:"{n} darbuot.", att_people_at_work:"{n} žm. darbe", att_still:"trūksta {n} · {w} sav.", att_fte:"−{v} FTE", att_hours_ago:"prieš {h} val.",
+  ch_title:"Kas pasikeitė", ch_first:"Pirmasis V2 duomenų rinkinys – pokyčiai bus rodomi po kito atnaujinimo.", ch_since:"Palyginta su {d}.",
+  ch_none:"Svarbių pokyčių nuo ankstesnio atnaujinimo nėra.", ch_all:"Rodyti visus pokyčius", ch_less:"Rodyti mažiau",
+  cat_workforce:"Darbuotojai", cat_locations:"Darbo vietos", cat_requests:"Žmonių prašymai", cat_staffing:"Komplektavimo planai",
+  cat_timesheets:"Žiniaraščiai ir valandos", cat_data:"Duomenų kokybė", cat_cost:"Numatoma darbo kaina",
+  tr_title:"Darbuotojų tendencija", tr_days:"{n} d.", tr_one:"Tendencija atsiras po antro V2 atnaujinimo.",
+  st_Yes:"Darbe", st_Workshop:"Ceche", st_Scheduled:"Išvyksta", st_Home:"Namie", st_Other:"Kita",
+  wf_title:"Darbuotojai", wf_hint:"Tik aktyvūs darbuotojai (Active = Yes). Savi darbuotojai – įmonė Ragic pažymėta „PASSER GROUP Company“.",
+  wf_by_loc:"Pagal darbo vietą", wf_by_group:"Pagal pareigų grupę", loc:"Vieta", country:"Šalis", people:"Žmonės",
+  waffle_unit:"1 kvadratėlis = {n} žm.",
+  sf_title:"Komplektavimas", sf_hint:"Paskutinė baigta savaitė ({w}): faktinis FTE iš žiniaraščių, palygintas su projekto vadovo komplektavimo planu. 40 val. = 1 FTE, žmogui ne daugiau 1 FTE per savaitę. Dabartinė ir būsimos savaitės rodo tik planą; žmonių prašymai pateikiami atskirai. Plano nebuvimas – normalu.",
+  sf_project:"Projektas", sf_plan:"Planas", sf_actual:"Faktinis FTE", sf_ach:"Įvykdyta", sf_short:"Trūksta", sf_status:"Būsena ({w} sav.)", sf_rep:"Trūko per {n} sav.", sf_req:"Susiję prašymai – dar trūksta",
+  sf_below:"Žemiau plano", sf_ok:"Pagal planą", sf_nots:"Ragic žiniaraščių nėra", sf_empty:"Pasirinktiems filtrams komplektavimo planų nėra.",
+  sf_last:"Paskutinė baigta savaitė · {w}", sf_next:"Planas – kitos {n} sav. (su dabartine)", sf_group:"Pareigų grupė / pareigos", sf_now:"dabar",
+  sf_reqs:"Susiję žmonių prašymai (atskiras procesas – prie plano nepridedami)", sf_noreq:"Susijusių prašymų nėra.",
+  sf_nots_note:"Ši vieta žiniaraščius pildo ne Ragic, todėl faktinis FTE nevertinamas.",
+  hr_title:"Valandos", hr_hint:"„Hours real“ iš Ragic užduočių sąrašų. Gamyklos suma – po ja sugrupuotų projektų suma. Paspauskite eilutę: projektai, pareigos ir įspėjimai.",
+  hr_yard:"Gamykla", hr_hours:"Valandos", hr_cost:"Numatoma darbo kaina", hr_projects:"Projektai", hr_main:"Pagrindinės pareigų grupės", hr_alerts:"Įspėjimai",
+  hr_period_total:"Iš viso", hr_sum:"{p}: {h} val.", hr_sum_cost:" · {c} numatoma darbo kaina", hr_by_pos:"Valandos pagal pareigas", hr_workers:"Darbuotojai ({n})",
+  hr_none:"Pasirinktam laikotarpiui ir filtrams valandų nėra.",
+  cost_note:"Numatoma darbo kaina: savi darbuotojai = valandinis įkainis į rankas (Qualification) × {lt} Lietuvoje arba × {trip} komandiruotėje (laikoma, kad {share}% sumos į rankas yra atlyginimas, likusi dalis – neapmokestinami dienpinigiai); subrangovai = {sub} €/val. pagal sąskaitą. {own}% savų darbuotojų valandų skaičiuojama pagal asmeninį įkainį, likusios – pagal pareigų vidurkį. Senesnės valandos įkainojamos dabartiniais įkainiais.",
+  rq_title:"Žmonių prašymai", rq_hint:"Ragic prašymų peržiūra (tik skaitymui). Suvestinė žmonių nepriskiria – tai lieka personalo darbas. Vardai rodomi tik prašymo detalėse.",
+  rq_week:"Savaitė", rq_project:"Projektas", rq_position:"Pareigos", rq_requested:"Prašyta", rq_reserved:"Rezervuota", rq_confirmed:"Patvirtinta atvykti",
+  rq_working:"Patvirtinta dirbantys", rq_still:"Dar trūksta", rq_status:"Būsena", rq_source:"Šaltinis", rq_open:"atidaryti Ragic", rq_empty:"Pasirinktiems filtrams prašymų nėra.",
+  rq_people:"Pažymėti žmonės", rq_name:"Vardas", rq_conf:"Conf.", rq_ts:"Žiniaraštis gamykloje",
+  rs_still_needed:"Dar trūksta", rs_reservation_incomplete:"Rezervacija nebaigta", rs_team_reserved:"Komanda rezervuota",
+  rs_partly_working:"{x} dirba, {y} patvirtinti atvykti", rs_likely_completed:"Tikriausiai įvykdyta",
+  yes:"Taip", no:"Ne",
+  al_title:"Įspėjimai", al_hint:"Įrašai patikrinimui, o ne patvirtinti pažeidimai. Darbuotojai rodomi pagal pareigas ir anoniminį kodą – kodas atveria darbuotojo kortelę Ragic.",
+  al_all:"Visi", al_no_ts:"Be žiniaraščio įrašų praėjusią savaitę", al_mismatch:"Vietos neatitikimas", al_over12:"Daugiau nei 12 val./d.", al_over60:"Daugiau nei 60 val./sav.", al_avg48:"Vidurkis virš 48 val./sav.",
+  al_hours4:"Valandos, paskutinės 4 sav.", al_worker:"Darbuotojas", al_yard:"Priskirta gamykla", al_detail:"Detalės", al_last:"Paskutinis įrašas", al_empty:"Pasirinktiems filtrams įspėjimų nėra.",
+  al_month_note:"Pasirinktas mėnuo: tam mėnesiui vertinami tik dienos ir savaitės ribų įspėjimai.",
+  d_no_ts:"nėra įrašų {w} sav.", d_mismatch:"įrašai {y}", d_over12:"{n}× >12 val. (daugiausia {m} val.)", d_over60:"{n} sav. >60 val.", d_avg48:"vid. {v} val./sav.",
+  foot:"Šaltinis: Ragic (SIDC10000) · V2 bandomasis puslapis · tik skaitymui · vardai rodomi tik prašymų detalėse",
+  c_active_total:"Aktyvūs darbuotojai {a} → {b}", c_status_Yes:"Darbe {a} → {b}", c_status_Workshop:"Cechuose {a} → {b}", c_status_Scheduled:"Išvyksta {a} → {b}", c_status_Home:"Namie {a} → {b}",
+  c_yard_onsite:"{yard}: darbe {a} → {b}", c_req_new:"Naujas prašymas: {project} – {n}× {position} ({week} sav.)", c_req_status:"{project} {position} ({week} sav.): {a} → {b}",
+  c_req_still:"{project} {position}: dar trūksta {a} → {b}", c_req_gone:"Prašymas pašalintas Ragic: {project} {position} ({week} sav.)",
+  c_staff_below:"{project} praėjusią savaitę nukrito žemiau plano (−{missing} FTE)", c_staff_worse:"{project}: trūkumas {a} → {b} FTE", c_staff_ok:"{project} vėl pagal planą",
+  c_flag_new_mismatch:"Naujas vietos neatitikimas: {n} darbuot.", c_flag_new_no_ts:"Nauji „be žiniaraščio įrašų praėjusią savaitę“: {n} darbuot.",
+  c_flag_new_over12:"Nauji >12 val./d. įspėjimai: {n} darbuot.", c_flag_new_over60:"Nauji >60 val./sav. įspėjimai: {n} darbuot.", c_flag_new_avg48:"Nauji >48 val. vidurkio įspėjimai: {n} darbuot.",
+  c_flag_gone_mismatch:"Vietos neatitikimai išspręsti: {n}", c_flag_gone_no_ts:"Vėl rasti žiniaraščiai: {n} darbuot.", c_flag_gone_over12:">12 val./d. įspėjimai dingo: {n}",
+  c_flag_gone_over60:">60 val./sav. įspėjimai dingo: {n}", c_flag_gone_avg48:">48 val. vidurkis dingo: {n}",
+  c_ts_not_updated:"Naujų žiniaraščio įrašų nėra nuo {date}", c_cost_pace:"Savaitės numatoma darbo kaina {a} → {b}",
+  g_Welders:"Suvirintojai", "g_SAW welders":"SAW suvirintojai", "g_Ship builders":"Laivų surinkėjai", g_Supervision:"Priežiūra", g_Management:"Vadovai",
+  "g_Pipe fitters":"Vamzdynų montuotojai", g_Support:"Pagalbiniai", g_Quality:"Kokybė", g_Operators:"Operatoriai", "g_Other trades":"Kitos specialybės",
+  months_short:"short"
+}};
+
+/* ---------------- state ---------------- */
+const S = {
+  layout: LS.get("layout", "classic"),
+  mode: LS.get("mode", "op"),
+  lang: LS.get("lang", "en"),
+  trendLines: LS.get("trendLines", ["Yes","Scheduled"]),
+  trendDays: LS.get("trendDays", 30),
+  period: "total",
+  f: {yard:"", country:"", project:"", group:"", own:"", attention:false},
+  alertTab: "all",
+  open: {},          // expanded rows: key -> period (hours) or true
+  attAll: false, chAll: false
+};
+const t = (k, p = {}) => {
+  let s = (I18N[S.lang] && I18N[S.lang][k]) ?? I18N.en[k] ?? k;
+  return s.replace(/\{(\w+)\}/g, (_, n) => p[n] ?? "");
+};
+const loc = () => S.lang === "lt" ? "lt-LT" : "en-GB";
+const fmt = n => Number(n || 0).toLocaleString(loc(), {maximumFractionDigits: 0});
+const fmt1 = n => Number(n || 0).toLocaleString(loc(), {minimumFractionDigits: 1, maximumFractionDigits: 1});
+const eur = n => { n = Number(n || 0); const a = Math.abs(n), L = loc();
+  return a >= 1e6 ? "€" + (n/1e6).toLocaleString(L, {maximumFractionDigits: a >= 1e7 ? 1 : 2}) + "M"
+       : a >= 1e4 ? "€" + Math.round(n/1e3).toLocaleString(L) + "k" : "€" + fmt(n); };
+const eurFull = n => "€" + fmt(n);
+const dLong = iso => iso ? new Date(iso + "T00:00:00").toLocaleDateString(loc(), {day:"numeric", month:"short", year:"numeric"}) : "";
+const dShort = iso => iso ? new Date(iso + "T00:00:00").toLocaleDateString(loc(), {day:"numeric", month:"short"}) : "";
+const mLabel = m => new Date(m + "-01T00:00:00").toLocaleDateString(loc(), {month:"short", year:"2-digit"});
+const mLong = m => new Date(m + "-01T00:00:00").toLocaleDateString(loc(), {month:"long", year:"numeric"});
+const gName = g => t("g_" + g);
+const yd = y => y === D.unassigned_key ? t("unassigned") : y;   // display name of a yard / location
+const stName = s => t("st_" + s);
+const isMgmt = () => S.mode === "mgmt" && LS.get("mgmtOk", "") === D.mgmt_hash;
+const periodLabel = p => p === "total" ? t("hr_period_total") : mLong(D.hours.months[p]);
+
+/* ---------------- data prep ---------------- */
+const PEOPLE = D.people.map(a => ({code:a[0], rid:a[1], yard:a[2], project:a[3], country:a[4], group:a[5], position:a[6], status:a[7], own:!!a[8]}));
+const HROWS = D.hours.rows.map(r => ({yard:r[0], project:r[1], group:r[2], position:r[3], m:r[4], own:!!r[5], h:r[6], c:r[7], country:(D.yards[r[0]] || "")}));
+const REQ = D.requests;
+const REQ_BY_ID = Object.fromEntries(REQ.map(r => [r.id, r]));
+const STAFF = D.staffing;
+const WORKERS = D.workers;
+const FLAGS = ["no_ts","mismatch","over12","over60","avg48"];
+const WT = ["over12","over60","avg48"];
+const STATUS = ["Yes","Workshop","Scheduled","Home"];
+const SCOLOR = {Yes:"var(--s-yes)", Workshop:"var(--s-workshop)", Scheduled:"var(--s-scheduled)", Home:"var(--s-home)", Other:"var(--na-bg)"};
+
+/* shared filters: apply only where the relationship exists */
+function pass(o, use = {}){
+  const f = S.f;
+  if (f.yard && use.yard !== false && o.yard !== undefined && o.yard !== f.yard) return false;
+  if (f.country && use.country !== false && o.country !== undefined && o.country !== f.country) return false;
+  if (f.project && use.project !== false && o.project !== undefined && o.project !== f.project && o.yard !== f.project) return false;
+  if (f.group && use.group !== false && o.group !== undefined && o.group !== f.group) return false;
+  if (f.own && use.own !== false && o.own !== undefined && (f.own === "own") !== !!o.own) return false;
+  return true;
+}
+const peopleF = () => PEOPLE.filter(p => pass(p));
+const workersF = () => WORKERS.filter(w => pass(w) && (!S.f.attention || w.flags.length));
+const reqF = () => REQ.filter(r => pass(r, {own:false}) && (!S.f.attention || r.status === "still_needed" || r.status === "reservation_incomplete"));
+const staffF = () => STAFF.filter(s => pass(s, {own:false, group:false}) && (!S.f.group || s.groups.some(g => g.group === S.f.group) || s.future.some(w => w.groups[S.f.group]))
+                                      && (!S.f.attention || s.below || relStill(s) > 0));
+const hoursF = (period = S.period) => HROWS.filter(r => pass(r) && (period === "total" || r.m === period));
+const relStill = s => s.requests.map(id => REQ_BY_ID[id]).filter(Boolean).reduce((a, r) => a + r.still, 0);
+
+/* alert evaluation (month-aware for the day/week limits) */
+function wFlags(w, period = S.period){
+  if (period === "total") return w.flags;
+  const m = w.monthly[String(period)] || [0, 0];
+  return [m[0] ? "over12" : null, m[1] ? "over60" : null].filter(Boolean);
+}
+function wDetail(w, f, period = S.period){
+  const m = period === "total" ? null : (w.monthly[String(period)] || [0, 0]);
+  if (f === "no_ts") return t("d_no_ts", {w: D.last_week.week});
+  if (f === "mismatch") return t("d_mismatch", {y: (w.mismatch || []).join(", ")});
+  if (f === "over12") return t("d_over12", {n: m ? m[0] : w.days_over, m: fmt1(w.max_day)});
+  if (f === "over60") return t("d_over60", {n: m ? m[1] : w.weeks_over});
+  if (f === "avg48") return t("d_avg48", {v: fmt1(w.avg16)});
+  return "";
+}
+
+/* ---------------- header, controls, nav, filters ---------------- */
+function segButtons(el, items, active, onPick){
+  el.innerHTML = items.map(([k, l]) => `<button type="button" data-k="${k}" aria-pressed="${k === active}">${esc(l)}</button>`).join("");
+  el.querySelectorAll("button").forEach(b => b.onclick = () => onPick(b.dataset.k));
+}
+function renderHeader(){
+  document.documentElement.lang = S.lang;
+  document.title = t("title") + " · V2";
+  $("title").innerHTML = `${esc(t("title"))} <span class="badge">${esc(t("v2"))}</span>`;
+  const gen = new Date(D.generated);
+  $("meta").innerHTML = `<span class="badge">${esc(t("week"))} ${D.week}</span> &nbsp;${esc(t("snapshot"))}: ${dLong(D.date)} · ${esc(t("updated"))}: ${gen.toLocaleString(loc(), {day:"numeric", month:"short", hour:"2-digit", minute:"2-digit"})}`;
+  const age = (Date.now() - gen.getTime()) / 36e5;
+  $("stale").hidden = age <= 36;
+  $("stale").textContent = t("stale", {h: Math.round(age)});
+  segButtons($("segLayout"), [["classic", t("classic")], ["visual", t("visual")]], S.layout, k => { S.layout = k; LS.set("layout", k); renderAll(); });
+  segButtons($("segMode"), [["op", t("operational")], ["mgmt", t("management")]], isMgmt() ? "mgmt" : "op", k => {
+    if (k === "op"){ S.mode = "op"; LS.set("mode", "op"); renderAll(); }
+    else if (LS.get("mgmtOk", "") === D.mgmt_hash){ S.mode = "mgmt"; LS.set("mode", "mgmt"); renderAll(); }
+    else openPw();
+  });
+  $("lockBtn").hidden = !isMgmt();
+  $("lockBtn").textContent = "🔒 " + t("lock");
+  segButtons($("segLang"), [["en", "EN"], ["lt", "LT"]], S.lang, k => { S.lang = k; LS.set("lang", k); renderAll(); });
+  $("themeBtn").textContent = t("theme");
+  document.body.classList.toggle("is-mgmt", isMgmt());
+  document.body.classList.toggle("layout-visual", S.layout === "visual");
+  $("foot").textContent = t("foot");
+}
+function renderNav(){
+  const ws = workersF().filter(w => wFlags(w).length).length;
+  const rs = reqF().filter(r => r.still > 0).length;
+  const items = [["overview"], ["workforce"], ["staffing"], ["hours"], ["requests", rs], ["alerts", ws]];
+  $("nav").innerHTML = items.map(([id, c]) => `<a href="#${id}" data-id="${id}">${esc(t("nav_" + id))}${c ? `<span class="cnt">${c}</span>` : ""}</a>`).join("");
+  observeNav();
+}
+let navObs = null;
+function observeNav(){
+  if (navObs) navObs.disconnect();
+  navObs = new IntersectionObserver(es => {
+    const vis = es.filter(e => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+    if (vis) document.querySelectorAll("#nav a").forEach(a => a.classList.toggle("active", a.dataset.id === vis.target.id));
+  }, {rootMargin: "-120px 0px -60% 0px"});
+  document.querySelectorAll("main > section").forEach(s => navObs.observe(s));
+}
+function renderFilters(){
+  const yards = [...new Set([...PEOPLE.map(p => p.yard), ...HROWS.map(r => r.yard), ...REQ.map(r => r.yard)])].sort();
+  const countries = [...new Set([...PEOPLE.map(p => p.country), ...HROWS.map(r => r.country)].filter(Boolean))].sort();
+  const projects = [...new Set([...HROWS.map(r => r.project), ...STAFF.map(s => s.project), ...REQ.map(r => r.project), ...PEOPLE.map(p => p.project)])].sort();
+  const sel = (id, lab, opts, val) => `<label>${esc(lab)}<select id="${id}">${opts.map(([v, l]) => `<option value="${esc(v)}"${v === val ? " selected" : ""}>${esc(l)}</option>`).join("")}</select></label>`;
+  const all = [["", t("f_all")]];
+  const months = D.hours.months.map((m, i) => [String(i), mLabel(m)]);
+  $("filters").innerHTML =
+    sel("fYard", t("f_yard"), all.concat(yards.map(y => [y, yd(y)])), S.f.yard) +
+    sel("fCountry", t("f_country"), all.concat(countries.map(c => [c, c])), S.f.country) +
+    sel("fProject", t("f_project"), all.concat(projects.map(p => [p, p])), S.f.project) +
+    sel("fGroup", t("f_group"), all.concat(D.groups.map(g => [g, gName(g)])), S.f.group) +
+    sel("fOwn", t("f_own"), [["", t("f_all")], ["own", t("own")], ["sub", t("sub")]], S.f.own) +
+    sel("fPeriod", t("f_period"), [["total", t("hr_period_total")]].concat(months), String(S.period)) +
+    `<label class="chk"><input type="checkbox" id="fAtt"${S.f.attention ? " checked" : ""}> ${esc(t("f_attention"))}</label>
+     <button class="btn small" id="fReset" style="margin-top:12px">${esc(t("f_reset"))}</button>`;
+  const on = (id, key, conv = v => v) => $(id).onchange = e => { S.f[key] = conv(e.target.value); renderAll(false); };
+  on("fYard", "yard"); on("fCountry", "country"); on("fProject", "project"); on("fGroup", "group"); on("fOwn", "own");
+  $("fPeriod").onchange = e => { S.period = e.target.value === "total" ? "total" : Number(e.target.value); renderAll(false); };
+  $("fAtt").onchange = e => { S.f.attention = e.target.checked; renderAll(false); };
+  $("fReset").onclick = () => { S.f = {yard:"", country:"", project:"", group:"", own:"", attention:false}; S.period = "total"; renderAll(); };
+}
+function secHead(id, title, hint){
+  return `<div class="sec-head"><div><h2>${esc(title)}</h2>${hint ? `<p class="hint">${hint}</p>` : ""}</div>
+    <button class="btn small pdf no-print" data-sec="${id}" title="${esc(t("pdf"))}">⤓ ${esc(t("pdf"))}</button></div>`;
+}
+
+/* ---------------- overview ---------------- */
+function kpi(label, value, note = "", cls = "", color = "", ico = ""){
+  return `<div class="card kpi ${cls}"><div class="l">${ico && S.layout === "visual" ? `<span class="ico">${ico}</span>` : ""}${color ? `<span class="dot" style="background:${color}"></span>` : ""}${esc(label)}</div>
+    <div class="v">${value}</div><div class="n">${note}</div></div>`;
+}
+function topGroups(list){
+  const c = {}; list.forEach(p => c[p.group] = (c[p.group] || 0) + 1);
+  const top = Object.entries(c).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([g, n]) => `${gName(g)} ${n}`).join(", ");
+  return top ? " · " + top : "";
+}
+function attentionItems(){
+  const items = [];
+  const ws = workersF();
+  const byYard = (f) => { const m = {}; ws.filter(w => w.flags.includes(f)).forEach(w => m[w.yard] = (m[w.yard] || 0) + 1); return m; };
+  Object.entries(byYard("mismatch")).forEach(([y, n]) => items.push({pr:1, what:t("att_mismatch"), where:yd(y), val:t("att_workers", {n}), go:["alerts", "mismatch", y], n}));
+  Object.entries(byYard("no_ts")).forEach(([y, n]) => items.push({pr:2, what:t("att_nots"), where:yd(y), val:t("att_workers", {n}), go:["alerts", "no_ts", y], n}));
+  reqF().filter(r => r.still > 0 && r.week <= D.week + 2).forEach(r => items.push({pr:3, what:t("att_short"), where:`${r.project} · ${r.position}`, val:t("att_still", {n:r.still, w:r.week}), go:["requests", null, r.yard], n:r.still}));
+  staffF().filter(s => s.below).forEach(s => items.push({pr:4, what:t("att_below"), where:s.project, val:t("att_fte", {v:fmt1(s.missing)}), go:["staffing", null, s.yard], n:s.missing}));
+  const wt = {}; ws.filter(w => w.flags.some(f => WT.includes(f))).forEach(w => wt[w.yard] = (wt[w.yard] || 0) + 1);
+  Object.entries(wt).forEach(([y, n]) => items.push({pr:5, what:t("att_wt"), where:yd(y), val:t("att_workers", {n}), go:["alerts", "over12", y], n}));
+  const age = (Date.now() - new Date(D.generated).getTime()) / 36e5;
+  if (age > 36) items.push({pr:6, what:t("att_stale"), where:"", val:t("att_hours_ago", {h:Math.round(age)}), go:["overview"], n:age});
+  Object.entries(D.data.yards_without_timesheets || {}).filter(([y]) => pass({yard:y, country:D.yards[y]}))
+    .forEach(([y, n]) => items.push({pr:6, what:t("att_nots_yard"), where:yd(y), val:t("att_people_at_work", {n}), go:["staffing", null, y], n}));
+  return items.sort((a, b) => a.pr - b.pr || b.n - a.n);
+}
+function renderOverview(){
+  const P = peopleF(), st = {}; P.forEach(p => st[p.status] = (st[p.status] || 0) + 1);
+  const R = reqF(), SF = staffF(), W = workersF();
+  const still = R.reduce((a, r) => a + r.still, 0), openReq = R.filter(r => r.still > 0).length;
+  const below = SF.filter(s => s.below).length, withPlan = SF.filter(s => !s.no_ts && s.plan).length;
+  const own = P.filter(p => p.own).length;
+  const noTs = W.filter(w => w.flags.includes("no_ts")).length;
+  const wt = W.filter(w => wFlags(w).some(f => WT.includes(f))).length;
+  const mism = W.filter(w => w.flags.includes("mismatch")).length;
+  const H = hoursF(), h = H.reduce((a, r) => a + r.h, 0), c = H.reduce((a, r) => a + r.c, 0);
+  const cAll = hoursF("total").reduce((a, r) => a + r.c, 0);
+  const vis = S.layout === "visual";
+  const primary = [
+    kpi(t("k_active"), fmt(P.length), "", "", "", "👷"),
+    kpi(t("k_atwork"), fmt(st.Yes), "", "", SCOLOR.Yes, "🏗️"),
+    kpi(t("k_sched"), fmt(st.Scheduled), "", "", SCOLOR.Scheduled, "✈️"),
+    kpi(t("k_still"), fmt(still), t("k_still_n", {n:openReq}), still ? "bad" : "", "", "🙋"),
+    kpi(t("k_below"), fmt(below), t("k_below_n", {n:withPlan}) + " · " + t("k_week", {w:D.last_week.week}), below ? "warn" : "", "", "📉"),
+  ].join("");
+  const secondary = [
+    mism ? kpi(t("k_mismatch"), fmt(mism), "", "bad") : "",
+    kpi(t("k_unassigned"), fmt(P.filter(p => p.yard === D.unassigned_key).length),
+        t("k_unassigned_n") + topGroups(P.filter(p => p.yard === D.unassigned_key)), "info", "var(--accent)"),
+    kpi(t("k_workshop"), fmt(st.Workshop), "", "", SCOLOR.Workshop),
+    kpi(t("k_home"), fmt(st.Home), "", "", SCOLOR.Home),
+    kpi(t("k_ownsub"), `${fmt(own)} / ${fmt(P.length - own)}`),
+    kpi(t("k_nots"), fmt(noTs), t("k_week", {w:D.last_week.week}), noTs ? "warn" : ""),
+    kpi(t("k_wt"), fmt(wt), "", wt ? "warn" : ""),
+    `<div class="mgmt" style="display:contents">${kpi(t("k_hours", {p:periodLabel(S.period)}), fmt(h), "", "mgmtk")}${kpi(t("k_cost", {p:periodLabel(S.period)}), eur(c), "", "mgmtk")}${S.period !== "total" ? kpi(t("k_cost_total"), eur(cAll), "", "mgmtk") : ""}</div>`
+  ].join("");
+  const items = attentionItems(), shown = S.attAll ? items : items.slice(0, 6);
+  const att = items.length ? `<ul class="att">${shown.map((it, i) => `<li data-i="${i}" tabindex="0"><span class="chip ${it.pr <= 2 ? "c-bad" : it.pr <= 4 ? "c-warn" : "c-na"}">${it.pr}</span>
+      <span><span class="what">${esc(it.what)}</span>${it.where ? `<div class="where">${esc(it.where)}</div>` : ""}</span><span class="val">${esc(it.val)}</span></li>`).join("")}</ul>
+      ${items.length > 6 ? `<button class="btn small no-print" id="attAll">${esc(S.attAll ? t("show_less") : t("show_all") + ` (${items.length})`)}</button>` : ""}`
+    : `<div class="ok-msg">✓ ${esc(t("att_none"))}</div>`;
+  $("overview").innerHTML = secHead("overview", t("nav_overview"), "") +
+    `<div class="kpis">${primary}</div><div class="kpis secondary">${secondary}</div>
+     <div class="grid two" style="margin-top:12px">
+       <div class="card"><h3 style="margin:0 0 8px;font-size:15px">⚠ ${esc(t("att_title"))}</h3>${att}</div>
+       <div class="card"><h3 style="margin:0 0 4px;font-size:15px">${esc(t("ch_title"))}</h3>${renderChanges()}</div>
+     </div>
+     <div class="card trend" style="margin-top:12px">${renderTrend()}</div>`;
+  $("overview").querySelectorAll(".att li").forEach(li => {
+    const go = () => { const it = shown[li.dataset.i]; goTo(...it.go); };
+    li.onclick = go; li.onkeydown = e => { if (e.key === "Enter") go(); };
+  });
+  if ($("attAll")) $("attAll").onclick = () => { S.attAll = !S.attAll; renderOverview(); };
+  if ($("chAll")) $("chAll").onclick = () => { S.chAll = !S.chAll; renderOverview(); };
+  $("overview").querySelectorAll(".tlg").forEach(b => b.onclick = () => {
+    const k = b.dataset.k; S.trendLines = S.trendLines.includes(k) ? S.trendLines.filter(x => x !== k) : S.trendLines.concat(k);
+    LS.set("trendLines", S.trendLines); renderOverview();
+  });
+  $("overview").querySelectorAll(".tdays").forEach(b => b.onclick = () => { S.trendDays = Number(b.dataset.k); LS.set("trendDays", S.trendDays); renderOverview(); });
+}
+function goTo(section, tab, yard){
+  if (yard !== undefined && yard !== null) S.f.yard = yard;
+  if (tab) S.alertTab = tab;
+  renderAll(false);
+  $(section).scrollIntoView({behavior:"smooth"});
+}
+function renderChanges(){
+  const C = D.changes;
+  if (C.first) return `<p class="hint">${esc(t("ch_first"))}</p>`;
+  const items = C.items.filter(i => i.cat !== "cost" || isMgmt());
+  const text = i => {
+    const p = Object.assign({}, i.p);
+    if (i.k === "req_status"){ p.a = t("rs_" + p.a, {x:"", y:""}); p.b = t("rs_" + p.b, {x:"", y:""}); }
+    if (i.k === "cost_pace"){ p.a = eur(p.a); p.b = eur(p.b); }
+    if (i.k === "staff_worse"){ p.a = fmt1(p.a); p.b = fmt1(p.b); }
+    if (p.missing !== undefined) p.missing = fmt1(p.missing);
+    if (p.date) p.date = dLong(p.date);
+    return t("c_" + i.k, p);
+  };
+  const li = i => `<li><span class="cat">${esc(t("cat_" + i.cat))}</span><span${i.imp ? ' class="imp"' : ""}>${i.imp ? "● " : ""}${esc(text(i))}</span></li>`;
+  const imp = items.filter(i => i.imp);
+  let body;
+  if (S.chAll){
+    const cats = ["workforce","locations","requests","staffing","timesheets","data","cost"];
+    body = cats.map(c => { const xs = items.filter(i => i.cat === c); return xs.length ? `<h4>${esc(t("cat_" + c))}</h4><ul class="changes">${xs.map(li).join("")}</ul>` : ""; }).join("");
+  } else {
+    const top = (imp.length ? imp : items).slice(0, 6);
+    body = top.length ? `<ul class="changes">${top.map(li).join("")}</ul>` : `<p class="muted">${esc(t("ch_none"))}</p>`;
+  }
+  return `<p class="hint">${esc(t("ch_since", {d:dLong(C.since)}))}</p>${body}
+    ${items.length > 6 || (items.length && !imp.length) ? `<button class="btn small no-print" id="chAll">${esc(S.chAll ? t("ch_less") : t("ch_all") + ` (${items.length})`)}</button>` : ""}`;
+}
+function renderTrend(){
+  const head = `<div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;align-items:center"><h3 style="margin:0;font-size:15px">${esc(t("tr_title"))}</h3>
+    <div class="legend no-print" style="margin:0">${STATUS.map(k => `<button class="tlg" data-k="${k}" aria-pressed="${S.trendLines.includes(k)}"><span class="dot" style="background:${SCOLOR[k]}"></span>${esc(stName(k))}</button>`).join("")}
+    ${[30, 90, 180].map(n => `<button class="tdays" data-k="${n}" aria-pressed="${S.trendDays === n}">${esc(t("tr_days", {n}))}</button>`).join("")}</div></div>`;
+  const from = new Date(D.date + "T00:00:00"); from.setDate(from.getDate() - S.trendDays);
+  const pts = D.trend.filter(p => new Date(p.date + "T00:00:00") >= from);
+  if (pts.length < 2) return head + `<p class="muted">${esc(t("tr_one"))} (${pts.length})</p>`;
+  const lines = S.trendLines.filter(k => STATUS.includes(k));
+  const w = 1100, h = 200, pad = {l:40, r:12, t:12, b:24};
+  const all = pts.flatMap(p => lines.map(k => p[k] || 0)), hi = Math.max(1, ...all), lo = 0;
+  const X = i => pad.l + i * (w - pad.l - pad.r) / (pts.length - 1), Y = v => pad.t + (h - pad.t - pad.b) * (1 - (v - lo) / (hi - lo || 1));
+  const ticks = [0, Math.round(hi / 2), hi];
+  const step = Math.max(1, Math.ceil(pts.length / 8));
+  return head + `<svg viewBox="0 0 ${w} ${h}" width="100%" role="img" aria-label="${esc(t("tr_title"))}">
+    ${ticks.map(v => `<line x1="${pad.l}" x2="${w - pad.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)"/><text x="${pad.l - 6}" y="${Y(v) + 4}" text-anchor="end">${fmt(v)}</text>`).join("")}
+    ${lines.map(k => `<path d="${pts.map((p, i) => `${i ? "L" : "M"}${X(i).toFixed(1)},${Y(p[k] || 0).toFixed(1)}`).join("")}" fill="none" stroke="${SCOLOR[k]}" stroke-width="2"/>
+      ${pts.map((p, i) => `<circle cx="${X(i)}" cy="${Y(p[k] || 0)}" r="3" fill="${SCOLOR[k]}"><title>${dShort(p.date)} · ${esc(stName(k))}: ${p[k] || 0}</title></circle>`).join("")}`).join("")}
+    ${pts.map((p, i) => i % step === 0 || i === pts.length - 1 ? `<text x="${X(i)}" y="${h - 6}" text-anchor="middle">${dShort(p.date)}</text>` : "").join("")}</svg>`;
+}
+
+/* ---------------- workforce ---------------- */
+function renderWorkforce(){
+  const P = peopleF();
+  const byYard = {};
+  P.forEach(p => { const y = byYard[p.yard] ||= {yard:p.yard, country:p.country, st:{}, own:0, n:0}; y.st[p.status] = (y.st[p.status] || 0) + 1; y.n++; if (p.own) y.own++; });
+  const yards = Object.values(byYard).sort((a, b) => (b.st.Yes || 0) - (a.st.Yes || 0) || b.n - a.n);
+  const byGroup = {};
+  P.forEach(p => { const g = byGroup[p.group] ||= {}; g[p.status] = (g[p.status] || 0) + 1; });
+  const gmax = Math.max(1, ...Object.values(byGroup).map(s => Object.values(s).reduce((a, b) => a + b, 0)));
+  const legend = `<div class="legend">${STATUS.map(k => `<span><span class="dot" style="background:${SCOLOR[k]}"></span>${esc(stName(k))}</span>`).join("")}</div>`;
+  const groupBars = `<div class="bars">${D.groups.filter(g => byGroup[g]).map(g => { const s = byGroup[g], n = Object.values(s).reduce((a, b) => a + b, 0);
+    return `<div class="r nocost"><div class="nm">${esc(gName(g))}</div><div class="tr" style="width:${n / gmax * 100}%">${STATUS.concat("Other").filter(k => s[k]).map(k => `<span style="width:${s[k] / n * 100}%;background:${SCOLOR[k]}" title="${esc(stName(k))}: ${s[k]}"></span>`).join("")}</div><div class="vv">${fmt(n)}</div></div>`; }).join("")}</div>`;
+  let left;
+  if (S.layout === "visual"){
+    const unit = P.length > 1500 ? 20 : P.length > 600 ? 10 : 5;
+    const st = {}; P.forEach(p => st[p.status] = (st[p.status] || 0) + 1);
+    left = `<div class="sub-h">${esc(t("waffle_unit", {n:unit}))}</div><div class="waffle" role="img">${STATUS.concat("Other").map(k => Array.from({length: st[k] ? Math.max(1, Math.round(st[k] / unit)) : 0}, () => `<i style="background:${SCOLOR[k]}" title="${esc(stName(k))}: ${st[k]}"></i>`).join("")).join("")}</div>${legend}
+      <div class="vcards" style="grid-template-columns:repeat(auto-fill,minmax(170px,1fr))">${yards.map(y => `<div class="card" style="padding:10px 12px"><div style="display:flex;justify-content:space-between"><b>${esc(yd(y.yard))}</b><span class="badge">${esc(y.country)}</span></div>
+        <div class="big" style="font-size:24px;font-weight:700">${fmt(y.st.Yes || 0)} <small class="muted" style="font-size:12px">${esc(stName("Yes"))}</small></div>
+        <div class="segbar">${STATUS.filter(k => y.st[k]).map(k => `<span style="width:${y.st[k] / y.n * 100}%;background:${SCOLOR[k]}" title="${esc(stName(k))}: ${y.st[k]}"></span>`).join("")}</div></div>`).join("")}</div>`;
+  } else {
+    left = `<div class="sub-h">${esc(t("wf_by_loc"))}</div><div class="tw"><table><thead><tr><th class="stick">${esc(t("loc"))}</th><th>${esc(t("country"))}</th>${STATUS.map(k => `<th class="num">${esc(stName(k))}</th>`).join("")}<th class="num">${esc(t("total"))}</th><th class="num">${esc(t("own"))}</th><th class="num">${esc(t("sub"))}</th></tr></thead>
+      <tbody>${yards.map(y => `<tr><td class="stick"><b>${esc(yd(y.yard))}</b></td><td>${esc(y.country)}</td>${STATUS.map(k => `<td class="num">${y.st[k] ? fmt(y.st[k]) : '<span class="faint">–</span>'}</td>`).join("")}<td class="num"><b>${fmt(y.n)}</b></td><td class="num">${fmt(y.own)}</td><td class="num">${fmt(y.n - y.own)}</td></tr>`).join("")}</tbody></table></div>`;
+  }
+  $("workforce").innerHTML = secHead("workforce", t("wf_title"), esc(t("wf_hint"))) +
+    `<div class="grid two"><div class="card">${left}</div><div class="card"><div class="sub-h">${esc(t("wf_by_group"))}</div>${S.layout === "visual" ? "" : legend}${groupBars}</div></div>`;
+}
+
+/* ---------------- staffing ---------------- */
+const shortCls = v => v >= 3 ? "c-bad" : v >= 1 ? "c-bad" : v > 0 ? "c-warn" : "c-ok";
+function staffDetail(s){
+  const fg = S.f.group;
+  const groups = s.groups.filter(g => !fg || g.group === fg);
+  const last = s.no_ts ? `<p class="muted">${esc(t("sf_nots_note"))}</p>` : `<table><thead><tr><th>${esc(t("sf_group"))}</th><th class="num">${esc(t("sf_plan"))}</th><th class="num">${esc(t("sf_actual"))}</th><th class="num">${esc(t("sf_short"))}</th></tr></thead><tbody>${
+    groups.map(g => `<tr><td><b>${esc(gName(g.group))}</b></td><td class="num">${fmt1(g.plan)}</td><td class="num">${fmt1(g.actual)}</td><td class="num">${g.plan ? `<span class="cell ${g.short >= 1 ? "c-bad" : g.short > 0 ? "c-warn" : "c-ok"}">${g.short > 0 ? "−" + fmt1(g.short) : "✓"}</span>` : '<span class="faint">–</span>'}</td></tr>` +
+      g.positions.map(p => `<tr><td style="padding-left:22px" class="muted">${esc(p.position)}</td><td class="num muted">${fmt1(p.plan)}</td><td class="num muted">${fmt1(p.actual)}</td><td></td></tr>`).join("")).join("")}</tbody></table>`;
+  const gl = [...new Set(s.future.flatMap(w => Object.keys(w.groups)))].filter(g => !fg || g === fg).sort((a, b) => D.groups.indexOf(a) - D.groups.indexOf(b));
+  const next = `<table><thead><tr><th>${esc(t("sf_group"))}</th>${s.future.map((w, i) => `<th class="num${i ? "" : " cur"}" title="${dShort(w.start)}">${w.week}${i ? "" : " · " + esc(t("sf_now"))}</th>`).join("")}</tr></thead><tbody>${
+    gl.map(g => `<tr><td>${esc(gName(g))}</td>${s.future.map((w, i) => `<td class="num${i ? "" : " cur"}">${w.groups[g] ? fmt(w.groups[g]) : '<span class="faint">–</span>'}</td>`).join("")}</tr>`).join("")}
+    <tr><td><b>${esc(t("total"))}</b></td>${s.future.map((w, i) => `<td class="num${i ? "" : " cur"}"><b>${w.total ? fmt(w.total) : "–"}</b></td>`).join("")}</tr></tbody></table>`;
+  const rel = s.requests.map(id => REQ_BY_ID[id]).filter(Boolean);
+  const reqs = rel.length ? `<table><tbody>${rel.map(r => `<tr><td>${r.week}</td><td>${esc(r.project)}</td><td>${esc(r.position)}</td><td class="num">${r.requested}</td><td>${statusChip(r)}</td><td class="num">${r.still ? `<span class="cell c-bad">${r.still}</span>` : ""}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">${esc(t("sf_noreq"))}</p>`;
+  return `<div class="detgrid"><div><div class="sub-h">${esc(t("sf_last", {w:s.last_week}))}</div>${last}</div>
+    <div><div class="sub-h">${esc(t("sf_next", {n:s.future.length}))}</div><div class="tw nomax">${next}</div>
+    <div class="sub-h" style="margin-top:12px">${esc(t("sf_reqs"))}</div>${reqs}</div></div>`;
+}
+function staffStatus(s){
+  if (s.no_ts) return `<span class="chip c-na">${esc(t("sf_nots"))}</span>`;
+  if (!s.plan) return `<span class="chip c-na">–</span>`;
+  return s.below ? `<span class="chip c-bad">✕ ${esc(t("sf_below"))}</span>` : `<span class="chip c-ok">✓ ${esc(t("sf_ok"))}</span>`;
+}
+function renderStaffing(){
+  const SF = staffF();
+  let body;
+  if (!SF.length) body = `<p class="muted">${esc(t("sf_empty"))}</p>`;
+  else if (S.layout === "visual"){
+    body = `<div class="vcards">${SF.map(s => {
+      const k = "s:" + s.project, open = S.open[k];
+      const pct = s.plan && !s.no_ts ? Math.min(100, s.actual / s.plan * 100) : 0;
+      return `<div class="card vcard${open ? " open" : ""}" data-k="${esc(k)}" tabindex="0"><div class="nm">${esc(s.project)}<span class="badge">${esc(s.country)}</span></div>
+        <div class="big">${s.no_ts ? "–" : fmt(s.actual)}<small>/ ${fmt(s.plan)} FTE · ${esc(t("k_week", {w:s.last_week}))}</small></div>
+        <div class="meter"><span style="width:${pct}%;background:${s.below ? "var(--bad-bg2)" : "var(--ok-bg)"}"></span></div>
+        <div>${staffStatus(s)} ${s.missing >= 1 ? `<span class="chip c-bad">−${fmt1(s.missing)} FTE</span>` : ""} ${relStill(s) ? `<span class="chip c-warn">🙋 ${relStill(s)}</span>` : ""}</div>
+        <div class="segbar" title="${esc(t("sf_rep", {n:s.history.length}))}">${s.history.map(h => `<span style="width:${100 / s.history.length}%;background:${h.below ? "var(--bad-bg2)" : "var(--ok-bg)"}" title="W${h.week}"></span>`).join("")}</div>
+      </div>${open ? `<div class="card vdetail">${staffDetail(s)}</div>` : ""}`; }).join("")}</div>`;
+  } else {
+    body = `<div class="tw"><table><thead><tr><th class="stick">${esc(t("sf_project"))}</th><th>${esc(t("country"))}</th><th class="num">${esc(t("sf_plan"))}</th><th class="num">${esc(t("sf_actual"))}</th><th class="num">${esc(t("sf_ach"))}</th><th class="num">${esc(t("sf_short"))}</th><th>${esc(t("sf_status", {w:D.last_week.week}))}</th><th class="num">${esc(t("sf_rep", {n:4}))}</th><th class="num">${esc(t("sf_req"))}</th></tr></thead><tbody>${
+      SF.map(s => { const k = "s:" + s.project, open = S.open[k];
+        return `<tr class="row${open ? " open" : ""}" data-k="${esc(k)}"><td class="stick"><b>${esc(s.project)}</b></td><td>${esc(s.country)}</td><td class="num">${fmt(s.plan)}</td><td class="num">${s.no_ts ? "–" : fmt(s.actual)}</td><td class="num">${s.pct === null ? "–" : s.pct + "%"}</td>
+          <td class="num">${s.missing >= 1 ? `<span class="cell c-bad">−${fmt(s.missing)}</span>` : s.missing > 0 ? `<span class="cell c-warn">−${fmt1(s.missing)}</span>` : '<span class="faint">–</span>'}</td><td>${staffStatus(s)}</td>
+          <td class="num">${s.no_ts ? "–" : `${s.repeated} / ${s.history.length}`}</td><td class="num">${relStill(s) ? `<span class="cell c-bad">${relStill(s)}</span>` : '<span class="faint">–</span>'}</td></tr>
+          ${open ? `<tr class="det"><td colspan="9">${staffDetail(s)}</td></tr>` : ""}`; }).join("")}</tbody></table></div>`;
+  }
+  $("staffing").innerHTML = secHead("staffing", t("sf_title"), esc(t("sf_hint", {w:D.last_week.week}))) + `<div class="card">${body}</div>`;
+  $("staffing").querySelectorAll("[data-k]").forEach(el => {
+    const tog = () => { S.open[el.dataset.k] = !S.open[el.dataset.k]; renderStaffing(); };
+    el.onclick = tog; el.onkeydown = e => { if (e.key === "Enter") tog(); };
+  });
+}
+
+/* ---------------- hours ---------------- */
+function yardAgg(rows){
+  const Y = {};
+  rows.forEach(r => { const y = Y[r.yard] ||= {yard:r.yard, country:r.country, h:0, c:0, projects:{}, groups:{}, positions:{}};
+    y.h += r.h; y.c += r.c;
+    const p = y.projects[r.project] ||= {h:0, c:0}; p.h += r.h; p.c += r.c;
+    const g = y.groups[r.group] ||= {h:0, c:0}; g.h += r.h; g.c += r.c;
+    const q = y.positions[r.group + "|" + r.position] ||= {group:r.group, position:r.position, h:0, c:0}; q.h += r.h; q.c += r.c; });
+  return Y;
+}
+function yardAlerts(yard, period){
+  return WORKERS.filter(w => w.yard === yard && pass(w, {yard:false, project:false}) && wFlags(w, period).length);
+}
+function hoursDetail(yard, period){
+  const first = D.hours.yard_first[yard] ?? 0, last = D.hours.months.length - 1;
+  const has = new Set(HROWS.filter(r => r.yard === yard && pass(r, {yard:false})).map(r => r.m));
+  const buttons = `<div class="periods no-print-keep">${[["total", t("hr_period_total")]].concat(D.hours.months.slice(first).map((m, i) => [first + i, mLabel(m)]))
+    .map(([k, l]) => `<button class="pb" data-y="${esc(yard)}" data-p="${k}" aria-pressed="${String(period) === String(k)}" ${k === "total" || has.has(k) ? "" : "disabled"}>${esc(l)}</button>`).join("")}</div>`;
+  const Y = yardAgg(HROWS.filter(r => r.yard === yard && pass(r, {yard:false}) && (period === "total" || r.m === period)))[yard];
+  if (!Y) return buttons + `<p class="muted">${esc(t("hr_none"))}</p>`;
+  const projects = Object.entries(Y.projects).sort((a, b) => b[1].h - a[1].h);
+  const groups = Object.entries(Y.groups).sort((a, b) => b[1].h - a[1].h);
+  const gmax = Math.max(1, ...groups.map(([, v]) => v.h));
+  const pos = Object.values(Y.positions);
+  const bars = groups.map(([g, v]) => `<div class="r"><div class="nm"><b>${esc(gName(g))}</b></div><div class="tr" title="${fmt(v.h)}"><span style="width:${v.h / gmax * 100}%;background:var(--s-yes)"></span></div><div class="vv">${fmt(v.h)}</div><div class="vv mgmt">${eur(v.c)}</div></div>` +
+    pos.filter(p => p.group === g).sort((a, b) => b.h - a.h).map(p => `<div class="r"><div class="nm sub">${esc(p.position)}</div><div class="tr"><span style="width:${p.h / gmax * 100}%;background:var(--s-yes);opacity:.55"></span></div><div class="vv">${fmt(p.h)}</div><div class="vv mgmt">${eur(p.c)}</div></div>`).join("")).join("");
+  const al = yardAlerts(yard, period);
+  return buttons + `<div style="margin:0 0 10px"><b>${esc(t("hr_sum", {p:periodLabel(period), h:fmt(Y.h)}))}</b><span class="mgmt">${esc(t("hr_sum_cost", {c:eur(Y.c)}))}</span></div>
+    <div class="detgrid"><div><div class="sub-h">${esc(t("hr_projects"))}</div><table><thead><tr><th>${esc(t("sf_project"))}</th><th class="num">${esc(t("hr_hours"))}</th><th class="num mgmt">${esc(t("hr_cost"))}</th></tr></thead><tbody>${
+      projects.map(([p, v]) => `<tr><td>${esc(p)}</td><td class="num">${fmt(v.h)}</td><td class="num mgmt" title="${eurFull(v.c)}">${eur(v.c)}</td></tr>`).join("")}</tbody></table>
+      ${WORKERS.some(w => w.yard === yard) ? `<button class="btn small no-print wkbtn" data-y="${esc(yard)}" data-p="${period}" style="margin-top:10px">${al.length ? `⚠ ${al.length} · ` : ""}${esc(t("hr_workers", {n:WORKERS.filter(w => w.yard === yard).length}))}</button>` : ""}</div>
+      <div><div class="sub-h">${esc(t("hr_by_pos"))}</div><div class="bars">${bars}</div></div></div>`;
+}
+function renderHours(){
+  const Y = yardAgg(hoursF());
+  const yards = Object.values(Y).sort((a, b) => b.h - a.h);
+  const cm = D.cost_model, src = cm.hours_by_source || {}, own = (src.own_rate || 0) + (src.position_avg || 0);
+  const note = `<span class="mgmt"><br><span class="faint">${esc(t("cost_note", {lt:fmt1(cm.lt_factor).replace(/,0$/, ""), trip:String(cm.trip_factor).replace(".", S.lang === "lt" ? "," : "."), share:Math.round(cm.trip_salary_share * 100), sub:cm.sub_rate, own: own ? Math.round((src.own_rate || 0) / own * 100) : 0}))}</span></span>`;
+  let chart = "";
+  if (S.layout === "visual" && yards.length){
+    const mx = Math.max(1, ...yards.map(y => y.h));
+    chart = `<div class="card" style="margin-bottom:12px"><div class="bars">${yards.map(y => `<div class="r"><div class="nm"><b>${esc(yd(y.yard))}</b></div><div class="tr" style="height:18px"><span style="width:${y.h / mx * 100}%;background:var(--s-yes)"></span></div><div class="vv">${fmt(y.h)}</div><div class="vv mgmt">${eur(y.c)}</div></div>`).join("")}</div></div>`;
+  }
+  const rows = yards.map(y => {
+    const k = "h:" + y.yard, open = S.open[k];
+    const top = Object.entries(y.groups).sort((a, b) => b[1].h - a[1].h).slice(0, 3).map(([g, v]) => `${gName(g)} ${Math.round(v.h / y.h * 100)}%`).join(" · ");
+    const al = yardAlerts(y.yard, S.period).length;
+    return `<tr class="row${open ? " open" : ""}" data-k="${esc(k)}"><td class="stick"><b>${esc(yd(y.yard))}</b></td><td>${esc(y.country)}</td><td class="num"><b>${fmt(y.h)}</b></td><td class="num mgmt" title="${eurFull(y.c)}"><b>${eur(y.c)}</b></td>
+      <td class="num">${Object.keys(y.projects).length}</td><td class="muted">${esc(top)}</td><td class="num">${al ? `<span class="chip c-warn">⚠ ${al}</span>` : '<span class="faint">–</span>'}</td></tr>
+      ${open ? `<tr class="det"><td colspan="7">${hoursDetail(y.yard, open === true ? S.period : open)}</td></tr>` : ""}`;
+  }).join("");
+  $("hours").innerHTML = secHead("hours", t("hr_title"), esc(t("hr_hint")) + note) + chart +
+    `<div class="card">${yards.length ? `<div class="tw"><table><thead><tr><th class="stick">${esc(t("hr_yard"))}</th><th>${esc(t("country"))}</th><th class="num">${esc(t("hr_hours"))} · ${esc(periodLabel(S.period))}</th><th class="num mgmt">${esc(t("hr_cost"))}</th><th class="num">${esc(t("hr_projects"))}</th><th>${esc(t("hr_main"))}</th><th class="num">${esc(t("hr_alerts"))}</th></tr></thead><tbody>${rows}</tbody></table></div>` : `<p class="muted">${esc(t("hr_none"))}</p>`}</div>`;
+  $("hours").querySelectorAll("tr.row").forEach(tr => tr.onclick = () => { const k = tr.dataset.k; S.open[k] = S.open[k] ? false : S.period === "total" ? "total" : S.period; renderHours(); });
+  $("hours").querySelectorAll(".pb").forEach(b => b.onclick = e => { e.stopPropagation(); S.open["h:" + b.dataset.y] = b.dataset.p === "total" ? "total" : Number(b.dataset.p); renderHours(); });
+  $("hours").querySelectorAll(".wkbtn").forEach(b => b.onclick = e => { e.stopPropagation(); openWorkers(b.dataset.y, b.dataset.p === "total" ? "total" : Number(b.dataset.p)); });
+}
+
+/* ---------------- requests ---------------- */
+function statusChip(r){
+  const cls = {still_needed:"c-bad", reservation_incomplete:"c-warn", team_reserved:"c-ok", partly_working:"c-info", likely_completed:"c-ok"}[r.status];
+  const ico = {still_needed:"✕", reservation_incomplete:"◐", team_reserved:"✓", partly_working:"▶", likely_completed:"✓✓"}[r.status];
+  return `<span class="chip ${cls}">${ico} ${esc(t("rs_" + r.status, {x:r.working, y:r.confirmed}))}</span>`;
+}
+function reqPeople(r){
+  if (!r.people.length) return `<p class="muted">–</p>`;
+  return `<div class="sub-h">${esc(t("rq_people"))}</div><table class="pii"><thead><tr><th>${esc(t("rq_name"))}</th><th>${esc(t("rq_position"))}</th><th>${esc(t("rq_conf"))}</th><th>${esc(t("rq_ts"))}</th></tr></thead><tbody>${
+    r.people.map(p => `<tr><td>${esc(p.name)}</td><td>${esc(p.position)}</td><td>${p.conf ? `<span class="chip c-ok">${esc(t("yes"))}</span>` : `<span class="chip c-na">${esc(t("no"))}</span>`}</td><td>${p.working ? `<span class="chip c-ok">✓</span>` : '<span class="faint">–</span>'}</td></tr>`).join("")}</tbody></table>`;
+}
+function renderRequests(){
+  const R = reqF();
+  let body;
+  if (!R.length) body = `<p class="muted">${esc(t("rq_empty"))}</p>`;
+  else if (S.layout === "visual"){
+    body = `<div class="vcards">${R.map(r => { const k = "r:" + r.id, open = S.open[k], n = Math.max(r.requested, r.reserved, 1);
+      const unconf = Math.max(0, r.reserved - r.working - r.confirmed);
+      return `<div class="card vcard${open ? " open" : ""}" data-k="${k}" tabindex="0"><div class="nm">${esc(r.project)}<span class="badge">${esc(t("rq_week"))} ${r.week}</span></div>
+        <div>${r.requested} × ${esc(r.position)}</div>
+        <div class="segbar" title="${r.working} / ${r.confirmed} / ${unconf} / ${r.still}"><span style="width:${r.working / n * 100}%;background:var(--ok)"></span><span style="width:${r.confirmed / n * 100}%;background:var(--accent)"></span><span style="width:${unconf / n * 100}%;background:var(--warn)"></span><span style="width:${r.still / n * 100}%;background:var(--bad)"></span></div>
+        <div>${statusChip(r)}</div>
+        <div class="v-small muted" style="font-size:12px">${esc(t("rq_reserved"))} ${r.reserved} · ${esc(t("rq_confirmed"))} ${r.confirmed} · ${esc(t("rq_working"))} ${r.working} · ${esc(t("rq_still"))} <b>${r.still}</b></div>
+        ${r.url ? `<a class="code no-print" href="${esc(r.url)}" target="_blank" rel="noopener">${esc(t("rq_open"))} ↗</a>` : ""}</div>
+        ${open ? `<div class="card vdetail">${reqPeople(r)}</div>` : ""}`; }).join("")}</div>`;
+  } else {
+    body = `<div class="tw"><table><thead><tr><th class="stick">${esc(t("rq_week"))}</th><th>${esc(t("rq_project"))}</th><th>${esc(t("rq_position"))}</th><th class="num">${esc(t("rq_requested"))}</th><th class="num">${esc(t("rq_reserved"))}</th><th class="num">${esc(t("rq_confirmed"))}</th><th class="num">${esc(t("rq_working"))}</th><th class="num">${esc(t("rq_still"))}</th><th>${esc(t("rq_status"))}</th><th class="no-print">${esc(t("rq_source"))}</th></tr></thead><tbody>${
+      R.map(r => { const k = "r:" + r.id, open = S.open[k];
+        return `<tr class="row${open ? " open" : ""}" data-k="${k}"><td class="stick">W${r.week}${r.week === D.week ? ` <span class="badge">${esc(t("sf_now"))}</span>` : ""}</td><td><b>${esc(r.project)}</b>${r.yard !== r.project ? ` <span class="faint">${esc(r.yard)}</span>` : ""}</td><td>${esc(r.position)}</td>
+          <td class="num">${r.requested}</td><td class="num">${r.reserved}</td><td class="num">${r.confirmed}</td><td class="num">${r.working}</td><td class="num">${r.still ? `<span class="cell c-bad">${r.still}</span>` : '<span class="faint">0</span>'}</td><td>${statusChip(r)}</td>
+          <td class="no-print">${r.url ? `<a class="code" href="${esc(r.url)}" target="_blank" rel="noopener" onclick="event.stopPropagation()">#${r.id} ↗</a>` : ""}</td></tr>
+          ${open ? `<tr class="det"><td colspan="10">${reqPeople(r)}</td></tr>` : ""}`; }).join("")}</tbody></table></div>`;
+  }
+  $("requests").innerHTML = secHead("requests", t("rq_title"), esc(t("rq_hint"))) + `<div class="card">${body}</div>`;
+  $("requests").querySelectorAll("[data-k]").forEach(el => {
+    const tog = e => { if (e.target.closest("a")) return; S.open[el.dataset.k] = !S.open[el.dataset.k]; renderRequests(); };
+    el.onclick = tog; el.onkeydown = e => { if (e.key === "Enter") tog(e); };
+  });
+}
+
+/* ---------------- alerts ---------------- */
+function alertTable(list, tab, period){
+  const rows = list.filter(w => tab === "all" ? wFlags(w, period).length : wFlags(w, period).includes(tab));
+  if (!rows.length) return `<p class="muted">${esc(t("al_empty"))}</p>`;
+  return `<div class="tw"><table><thead><tr><th class="stick">${esc(t("al_worker"))}</th><th>${esc(t("al_yard"))}</th><th>${esc(t("f_group"))}</th><th>${esc(t("rq_status"))}</th><th class="num" colspan="4">${esc(t("al_hours4"))}</th><th>${esc(t("al_last"))}</th><th>${esc(t("al_detail"))}</th></tr></thead><tbody>${
+    rows.map(w => `<tr><td class="stick">${w.rid ? `<a class="code" href="${esc(D.links.people + w.rid)}" target="_blank" rel="noopener">${esc(w.code)} ↗</a>` : esc(w.code)}</td><td>${esc(yd(w.yard))}</td><td>${esc(gName(w.group))}</td><td>${esc(stName(w.status))}</td>
+      ${w.weeks.map(h => `<td class="num${h > 60 ? " " : ""}">${h > 60 ? `<span class="cell c-bad">${h}</span>` : h || '<span class="faint">–</span>'}</td>`).join("")}
+      <td class="muted">${w.last ? dShort(w.last) : "–"}</td><td>${wFlags(w, period).filter(f => tab === "all" || f === tab).map(f => `<span class="chip ${f === "mismatch" || f === "no_ts" ? "c-bad" : "c-warn"}">${esc(wDetail(w, f, period))}</span>`).join(" ")}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function alertTabs(list, tab, period, attr){
+  const flags = period === "total" ? FLAGS : ["over12","over60"];
+  const n = f => list.filter(w => f === "all" ? wFlags(w, period).length : wFlags(w, period).includes(f)).length;
+  return `<div class="tabs no-print">${["all"].concat(flags).filter(f => f !== "mismatch" || n(f) || tab === f).map(f => `<button class="tab" ${attr}="${f}" aria-pressed="${tab === f}">${esc(t("al_" + f))} <b>${n(f)}</b></button>`).join("")}</div>
+    ${period !== "total" ? `<p class="hint">${esc(t("al_month_note"))}</p>` : ""}`;
+}
+function renderAlerts(){
+  const W = workersF();
+  $("alerts").innerHTML = secHead("alerts", t("al_title"), esc(t("al_hint"))) +
+    `<div class="card">${alertTabs(W, S.alertTab, S.period, "data-tab")}${alertTable(W, S.alertTab, S.period)}</div>`;
+  $("alerts").querySelectorAll("[data-tab]").forEach(b => b.onclick = () => { S.alertTab = b.dataset.tab; renderAlerts(); });
+}
+
+/* ---------------- workers modal (from a yard in Hours) ---------------- */
+let wk = {yard:null, period:"total", tab:"all", focus:null};
+function openWorkers(yard, period){
+  wk = {yard, period, tab:"all", focus:document.activeElement};
+  drawWorkers();
+  $("wkModal").hidden = false; document.body.style.overflow = "hidden"; $("wkClose").focus();
+}
+function drawWorkers(){
+  const list = WORKERS.filter(w => w.yard === wk.yard && pass(w, {yard:false, project:false}));
+  $("wkTitle").textContent = `${wk.yard} · ${t("al_title")} · ${periodLabel(wk.period)}`;
+  $("wkBody").innerHTML = `<p class="hint">${esc(t("al_hint"))}</p>${alertTabs(list, wk.tab, wk.period, "data-wtab")}${alertTable(list, wk.tab, wk.period)}`;
+  $("wkBody").querySelectorAll("[data-wtab]").forEach(b => b.onclick = () => { wk.tab = b.dataset.wtab; drawWorkers(); });
+}
+function closeModal(id){ $(id).hidden = true; document.body.style.overflow = ""; if (wk.focus) wk.focus.focus(); }
+$("wkClose").onclick = () => closeModal("wkModal");
+$("wkModal").addEventListener("click", e => { if (e.target === $("wkModal")) closeModal("wkModal"); });
+
+/* ---------------- management password ---------------- */
+function openPw(){
+  $("pwTitle").textContent = t("pw_title"); $("pwLabel").textContent = t("pw_label"); $("pwOk").textContent = t("pw_ok");
+  $("pwErr").textContent = ""; $("pwInput").value = "";
+  $("pwModal").hidden = false; $("pwInput").focus();
+}
+async function sha256(s){
+  const b = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, "0")).join("");
+}
+$("pwForm").onsubmit = async e => {
+  e.preventDefault();
+  const h = await sha256($("pwInput").value);
+  if (h === D.mgmt_hash){ LS.set("mgmtOk", h); S.mode = "mgmt"; LS.set("mode", "mgmt"); $("pwModal").hidden = true; renderAll(); }
+  else $("pwErr").textContent = t("pw_err");
+};
+$("pwClose").onclick = () => { $("pwModal").hidden = true; };
+$("lockBtn").onclick = () => { LS.del("mgmtOk"); S.mode = "op"; LS.set("mode", "op"); renderAll(); };
+document.addEventListener("keydown", e => { if (e.key === "Escape"){ if (!$("wkModal").hidden) closeModal("wkModal"); if (!$("pwModal").hidden) $("pwModal").hidden = true; } });
+
+/* ---------------- theme ---------------- */
+(function(){
+  const root = document.documentElement;
+  const tt = LS.get("theme", null); if (tt) root.dataset.theme = tt;
+  $("themeBtn").onclick = () => {
+    const dark = root.dataset.theme ? root.dataset.theme === "dark" : matchMedia("(prefers-color-scheme: dark)").matches;
+    root.dataset.theme = dark ? "light" : "dark"; LS.set("theme", root.dataset.theme);
+  };
+})();
+
+/* ---------------- PDF / print of one section ---------------- */
+document.addEventListener("click", e => {
+  const b = e.target.closest("button.pdf"); if (!b) return;
+  const id = b.dataset.sec, sec = $(id);
+  const f = S.f, active = [
+    f.yard && `${t("f_yard")}: ${f.yard}`, f.country && `${t("f_country")}: ${f.country}`, f.project && `${t("f_project")}: ${f.project}`,
+    f.group && `${t("f_group")}: ${gName(f.group)}`, f.own && `${t("f_own")}: ${t(f.own)}`, f.attention && t("f_attention")].filter(Boolean).join(" · ") || t("print_none");
+  $("printHead").innerHTML = `<h1>${esc(t("title"))} – ${esc(t("nav_" + id))}</h1>
+    ${esc(t("snapshot"))}: ${dLong(D.date)} · ${esc(t("print_period"))}: ${esc(periodLabel(S.period))} · ${esc(t("print_mode"))}: ${esc(isMgmt() ? t("management") : t("operational"))} · ${esc(t("print_lang"))}: ${S.lang.toUpperCase()}<br>${esc(t("print_filters"))}: ${esc(active)}`;
+  document.body.dataset.print = id; sec.classList.add("printing");
+  const done = () => { delete document.body.dataset.print; sec.classList.remove("printing"); window.removeEventListener("afterprint", done); };
+  window.addEventListener("afterprint", done);
+  window.print();
+  setTimeout(done, 1000);
+});
+
+/* ---------------- render ---------------- */
+function renderAll(full = true){
+  renderHeader();
+  renderFilters();
+  renderNav();
+  renderOverview(); renderWorkforce(); renderStaffing(); renderHours(); renderRequests(); renderAlerts();
+}
+if (S.mode === "mgmt" && LS.get("mgmtOk", "") !== D.mgmt_hash) S.mode = "op";
+renderAll();
+</script>
+</body>
+</html>
