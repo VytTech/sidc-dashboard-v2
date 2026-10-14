@@ -1,0 +1,71 @@
+name: Daily dashboard V2
+
+on:
+  schedule:
+    - cron: "0 4 * * *"   # every day 04:00 UTC
+  workflow_dispatch:       # "Run workflow" button for a manual refresh
+
+permissions:
+  contents: write          # commit the encrypted daily snapshot to history/
+  pages: write
+  id-token: write
+
+concurrency:
+  group: dashboard-v2
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      RAGIC_API_KEY: ${{ secrets.RAGIC_API_KEY }}
+      PAGE_PASSWORD: ${{ secrets.PAGE_PASSWORD }}
+      MGMT_PASSWORD: ${{ secrets.MGMT_PASSWORD }}
+      RAGIC_BASE: ${{ vars.RAGIC_BASE || 'https://eu4.ragic.com' }}
+      RAGIC_ACCOUNT: SIDC10000
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install cryptography==43.0.3
+
+      - name: Fetch data from Ragic
+        run: python fetch_ragic.py raw
+
+      - name: Build dashboard V2
+        run: python build.py raw history site/index.html
+
+      - name: Save encrypted snapshot
+        run: |
+          git config user.name "dashboard-bot"
+          git config user.email "dashboard-bot@users.noreply.github.com"
+          git add history
+          git diff --cached --quiet || git commit -m "Snapshot $(date -u +%F)"
+          git push
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Password-protect page
+        run: |
+          npx --yes staticrypt@3.5.4 site/index.html -d public -p "$PAGE_PASSWORD" \
+            --short --remember 30 --config false --salt 2f27eb62e7414e4adb854ba40b0560b5 \
+            --template-title "SIDC Daily Overview V2" \
+            --template-instructions "Enter the password to open the dashboard." \
+            --template-button "Open" --template-color-primary "#1f5fbf" --template-color-secondary "#eef0f3"
+          touch public/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deploy
+        uses: actions/deploy-pages@v4
